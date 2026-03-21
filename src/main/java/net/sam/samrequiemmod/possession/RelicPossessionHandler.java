@@ -72,10 +72,16 @@ public final class RelicPossessionHandler {
                     && (entity instanceof DrownedEntity drowned)
                     && drowned.isBaby();
 
+            // Detect baby zombie villager
+            boolean isBabyZombieVillager = (type == EntityType.ZOMBIE_VILLAGER)
+                    && (entity instanceof net.minecraft.entity.mob.ZombieVillagerEntity zv)
+                    && zv.isBaby();
+
             // Set baby states BEFORE startPossession so PossessionEffects picks up the correct profile
             if (isBabyZombie)  BabyZombieState.setServerBaby(serverPlayer.getUuid(), true);
             if (isBabyHusk)    BabyHuskState.setServerBaby(serverPlayer.getUuid(), true);
             if (isBabyDrowned) BabyDrownedState.setServerBaby(serverPlayer.getUuid(), true);
+            if (isBabyZombieVillager) net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerState.setServerBaby(serverPlayer.getUuid(), true);
 
             // Start possession — pass mob's current health so player health updates to match
             float mobHealth = livingTarget.getHealth();
@@ -85,13 +91,14 @@ public final class RelicPossessionHandler {
             if (isBabyZombie)  BabyZombieNetworking.broadcastBabyZombieSync(serverPlayer, true);
             if (isBabyHusk)    BabyHuskNetworking.broadcastBabyHuskSync(serverPlayer, true);
             if (isBabyDrowned) BabyDrownedNetworking.broadcast(serverPlayer, true);
+            if (isBabyZombieVillager) net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerNetworking.broadcast(serverPlayer, true);
 
             entity.discard();
 
             serverPlayer.sendMessage(
                     Text.literal("§5You used the Possession Relic on §f"
                             + livingTarget.getType().getName().getString()
-                            + (isBabyZombie || isBabyHusk || isBabyDrowned ? " §7(Baby)" : "")),
+                            + (isBabyZombie || isBabyHusk || isBabyDrowned || isBabyZombieVillager ? " §7(Baby)" : "")),
                     true
             );
 

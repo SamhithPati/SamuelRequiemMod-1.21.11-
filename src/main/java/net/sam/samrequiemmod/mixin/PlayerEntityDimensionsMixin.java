@@ -35,6 +35,8 @@ public abstract class PlayerEntityDimensionsMixin {
             profile = PossessionProfiles.BABY_HUSK_PROFILE;
         } else if (type == EntityType.DROWNED && BabyDrownedState.isBaby(player)) {
             profile = PossessionProfiles.BABY_DROWNED_PROFILE;
+        } else if (type == EntityType.ZOMBIE_VILLAGER && net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerState.isBaby(player)) {
+            profile = PossessionProfiles.BABY_ZOMBIE_VILLAGER_PROFILE;
         } else {
             profile = PossessionProfiles.get(type);
         }

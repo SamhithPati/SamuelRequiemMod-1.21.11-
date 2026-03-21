@@ -27,6 +27,15 @@ public final class PossessionProfiles {
             0.04     // same speed as baby zombie
     );
 
+    // Baby zombie villager uses EntityType.ZOMBIE_VILLAGER but with baby dimensions
+    public static final PossessionProfile BABY_ZOMBIE_VILLAGER_PROFILE = new PossessionProfile(
+            0.6f,    // width
+            0.975f,  // height
+            0.84f,   // eye height
+            0.0,
+            0.04     // same speed as baby zombie
+    );
+
     // Baby zombie uses EntityType.ZOMBIE but with its own dimensions profile
     public static final PossessionProfile BABY_ZOMBIE_PROFILE = new PossessionProfile(
             0.6f,    // width
@@ -60,6 +69,15 @@ public final class PossessionProfiles {
 
         // 🏜️ Husk profile — same dimensions as adult zombie, same speed
         register(EntityType.HUSK, new PossessionProfile(
+                0.6f,
+                1.95f,
+                1.74f,
+                0.0,
+                -0.04
+        ));
+
+        // 🧟‍ Zombie Villager profile — same dimensions as adult zombie
+        register(EntityType.ZOMBIE_VILLAGER, new PossessionProfile(
                 0.6f,
                 1.95f,
                 1.74f,

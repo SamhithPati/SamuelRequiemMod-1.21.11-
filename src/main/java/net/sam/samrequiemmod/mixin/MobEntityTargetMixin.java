@@ -76,7 +76,9 @@ public abstract class MobEntityTargetMixin {
                 || HuskPossessionController.isHuskPossessing(serverPlayer)
                 || BabyHuskPossessionController.isBabyHuskPossessing(serverPlayer)
                 || DrownedPossessionController.isDrownedPossessing(serverPlayer)
-                || BabyDrownedPossessionController.isBabyDrownedPossessing(serverPlayer);
+                || BabyDrownedPossessionController.isBabyDrownedPossessing(serverPlayer)
+                || net.sam.samrequiemmod.possession.zombie_villager.ZombieVillagerPossessionController.isZombieVillagerPossessing(serverPlayer)
+                || net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerPossessionController.isBabyZombieVillagerPossessing(serverPlayer);
         if (!isZombiePossessed) return;
 
         // Golems are always allowed to target us

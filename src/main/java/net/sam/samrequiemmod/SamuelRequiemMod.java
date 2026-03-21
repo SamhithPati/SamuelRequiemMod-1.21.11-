@@ -49,6 +49,8 @@ public class SamuelRequiemMod implements ModInitializer {
 		BabyDrownedNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.WaterShakeNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.illager.EvokerNetworking.registerCommon();
+		net.sam.samrequiemmod.possession.zombie.ChickenJumpNetworking.registerCommon();
+		net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerNetworking.registerCommon();
 
 		FabricDefaultAttributeRegistry.register(
 				ModEntities.CORRUPTED_MERCHANT,
@@ -66,10 +68,13 @@ public class SamuelRequiemMod implements ModInitializer {
 		BabyHuskPossessionController.register();
 		DrownedPossessionController.register();
 		BabyDrownedPossessionController.register();
+		net.sam.samrequiemmod.possession.zombie_villager.ZombieVillagerPossessionController.register();
+		net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerPossessionController.register();
 		net.sam.samrequiemmod.possession.illager.PillagerPossessionController.register();
 		net.sam.samrequiemmod.possession.illager.VindicatorPossessionController.register();
 		net.sam.samrequiemmod.possession.illager.EvokerPossessionController.register();
 		net.sam.samrequiemmod.possession.illager.EvokerNetworking.registerServer();
+		net.sam.samrequiemmod.possession.zombie.ChickenJumpNetworking.registerServer();
 		ZombieFoodUseHandler.register();
 
 		// When a possessed player dies, cancel the death and unpossess them instead
@@ -270,6 +275,8 @@ public class SamuelRequiemMod implements ModInitializer {
 					BabyHuskPossessionController.tick(player);
 					DrownedPossessionController.tick(player);
 					BabyDrownedPossessionController.tick(player);
+					net.sam.samrequiemmod.possession.zombie_villager.ZombieVillagerPossessionController.tick(player);
+					net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerPossessionController.tick(player);
 					ZombieFoodUseHandler.tick(player);
 				}
 			}

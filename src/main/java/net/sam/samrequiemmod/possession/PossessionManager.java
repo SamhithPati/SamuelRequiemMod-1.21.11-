@@ -150,6 +150,9 @@ public final class PossessionManager {
         // Clear baby drowned state and remove trident on unpossess
         BabyDrownedState.setServerBaby(player.getUuid(), false);
         BabyDrownedNetworking.broadcast(player, false);
+        // Clear baby zombie villager state on unpossess
+        net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerState.setServerBaby(player.getUuid(), false);
+        net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerNetworking.broadcast(player, false);
         DrownedTridentManager.removeTrident(player);
         DrownedTridentManager.clearPlayer(player.getUuid());
         // Reset water conversion timer and shaking state on unpossess

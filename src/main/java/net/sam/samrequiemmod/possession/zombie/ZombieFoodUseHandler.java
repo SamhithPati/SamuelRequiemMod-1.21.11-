@@ -36,6 +36,8 @@ public final class ZombieFoodUseHandler {
             boolean isBabyHusk   = net.sam.samrequiemmod.possession.husk.BabyHuskPossessionController.isBabyHuskPossessing(serverPlayer);
             boolean isDrowned    = net.sam.samrequiemmod.possession.drowned.DrownedPossessionController.isDrownedPossessing(serverPlayer);
             boolean isBabyDrowned = net.sam.samrequiemmod.possession.drowned.BabyDrownedPossessionController.isBabyDrownedPossessing(serverPlayer);
+            boolean isZombieVillager = net.sam.samrequiemmod.possession.zombie_villager.ZombieVillagerPossessionController.isZombieVillagerPossessing(serverPlayer);
+            boolean isBabyZombieVillager = net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerPossessionController.isBabyZombieVillagerPossessing(serverPlayer);
             boolean isPillager   = net.sam.samrequiemmod.possession.illager.PillagerPossessionController.isPillagerPossessing(serverPlayer);
             boolean isVindicator = net.sam.samrequiemmod.possession.illager.VindicatorPossessionController.isVindicatorPossessing(serverPlayer);
             boolean isEvoker = net.sam.samrequiemmod.possession.illager.EvokerPossessionController.isEvokerPossessing(serverPlayer);
@@ -82,7 +84,7 @@ public final class ZombieFoodUseHandler {
                 return TypedActionResult.consume(stack);
             }
 
-            if (!isZombie && !isBabyZombie && !isHusk && !isBabyHusk && !isDrowned && !isBabyDrowned) return TypedActionResult.pass(stack);
+            if (!isZombie && !isBabyZombie && !isHusk && !isBabyHusk && !isDrowned && !isBabyDrowned && !isZombieVillager && !isBabyZombieVillager) return TypedActionResult.pass(stack);
 
             FoodComponent food = stack.get(DataComponentTypes.FOOD);
             if (food == null) return TypedActionResult.pass(stack);
@@ -113,10 +115,12 @@ public final class ZombieFoodUseHandler {
         boolean isBabyHusk   = net.sam.samrequiemmod.possession.husk.BabyHuskPossessionController.isBabyHuskPossessing(player);
         boolean isDrowned    = net.sam.samrequiemmod.possession.drowned.DrownedPossessionController.isDrownedPossessing(player);
         boolean isBabyDrowned = net.sam.samrequiemmod.possession.drowned.BabyDrownedPossessionController.isBabyDrownedPossessing(player);
+        boolean isZombieVillager2 = net.sam.samrequiemmod.possession.zombie_villager.ZombieVillagerPossessionController.isZombieVillagerPossessing(player);
+        boolean isBabyZombieVillager2 = net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerPossessionController.isBabyZombieVillagerPossessing(player);
         boolean isPillager   = net.sam.samrequiemmod.possession.illager.PillagerPossessionController.isPillagerPossessing(player);
         boolean isVindicator = net.sam.samrequiemmod.possession.illager.VindicatorPossessionController.isVindicatorPossessing(player);
         boolean isEvoker = net.sam.samrequiemmod.possession.illager.EvokerPossessionController.isEvokerPossessing(player);
-        if (!isZombie && !isBabyZombie && !isHusk && !isBabyHusk && !isDrowned && !isBabyDrowned && !isPillager && !isVindicator && !isEvoker) {
+        if (!isZombie && !isBabyZombie && !isHusk && !isBabyHusk && !isDrowned && !isBabyDrowned && !isZombieVillager2 && !isBabyZombieVillager2 && !isPillager && !isVindicator && !isEvoker) {
             EATING_ITEM.remove(player.getUuid());
             return;
         }

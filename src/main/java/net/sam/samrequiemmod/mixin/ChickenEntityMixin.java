@@ -63,17 +63,22 @@ public class ChickenEntityMixin {
         }
     }
 
-    // ── 4. Passenger height offset (declared on Entity) ───────────────────────
+    // ── 4. Passenger height offset — override updatePassengerPosition ─────────
     @Mixin(Entity.class)
     public abstract static class MountedHeightMixin {
-        @Inject(method = "getPassengerRidingPos", at = @At("HEAD"), cancellable = true)
-        private void samrequiemmod$height(Entity passenger, CallbackInfoReturnable<Vec3d> cir) {
+        @Inject(method = "updatePassengerPosition(Lnet/minecraft/entity/Entity;Lnet/minecraft/entity/Entity$PositionUpdater;)V",
+                at = @At("HEAD"), cancellable = true)
+        private void samrequiemmod$height(Entity passenger, Entity.PositionUpdater positionUpdater, CallbackInfo ci) {
             Entity self = (Entity)(Object)this;
             if (!(self instanceof ChickenEntity chicken)) return;
-            if (passenger instanceof PlayerEntity p && ChickenRidingHandler.isBabyUndead(p)) {
-                float yOffset = chicken.getHeight() * 0.6f;
-                cir.setReturnValue(self.getPos().add(0.0, yOffset, 0.0));
+            if (!(passenger instanceof PlayerEntity p) || !ChickenRidingHandler.isBabyUndead(p)) return;
+
+            double y = chicken.getY() + chicken.getHeight() * 0.45;
+            positionUpdater.accept(passenger, chicken.getX(), y, chicken.getZ());
+            if (passenger instanceof LivingEntity living) {
+                living.bodyYaw = chicken.bodyYaw;
             }
+            ci.cancel();
         }
     }
 
@@ -112,8 +117,6 @@ public class ChickenEntityMixin {
             chicken.headYaw = yaw;
             chicken.bodyYaw = yaw;
 
-            // forwardSpeed/sidewaysSpeed are now populated because we return
-            // this passenger from getControllingPassenger()
             float fwd    = rider.forwardSpeed;
             float strafe = rider.sidewaysSpeed;
             double speed = 0.2;
@@ -122,11 +125,20 @@ public class ChickenEntityMixin {
             double dz    = ( Math.cos(rad) * fwd + Math.sin(rad) * strafe) * speed;
 
             Vec3d vel = chicken.getVelocity();
-            chicken.setVelocity(dx, vel.y, dz);
+            double vy = vel.y;
+
+            // Apply gravity (same as vanilla: -0.08 per tick)
+            vy -= 0.08;
+
+            // Jump when rider presses space and chicken is on the ground
+            if (net.sam.samrequiemmod.possession.zombie.ChickenJumpNetworking
+                    .JUMP_REQUESTED.contains(rider.getUuid()) && chicken.isOnGround()) {
+                vy = 0.5;
+            }
+
+            chicken.setVelocity(dx, vy, dz);
             chicken.velocityModified = true;
 
-            // Let vanilla handle gravity/collision but skip the normal movement calc
-            // by calling super-minimal: just apply velocity
             chicken.move(net.minecraft.entity.MovementType.SELF, chicken.getVelocity());
             chicken.setVelocity(chicken.getVelocity().multiply(0.91, 0.98, 0.91));
             ci.cancel();

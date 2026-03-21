@@ -43,6 +43,8 @@ public final class PossessionEffects {
             profile = PossessionProfiles.BABY_HUSK_PROFILE;
         } else if (type == EntityType.DROWNED && BabyDrownedState.isServerBaby(player)) {
             profile = PossessionProfiles.BABY_DROWNED_PROFILE;
+        } else if (type == EntityType.ZOMBIE_VILLAGER && net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_ZOMBIE_VILLAGER_PROFILE;
         } else {
             profile = PossessionProfiles.get(type);
         }

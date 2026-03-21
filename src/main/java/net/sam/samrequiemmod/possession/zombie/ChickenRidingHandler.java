@@ -15,7 +15,8 @@ public final class ChickenRidingHandler {
     public static boolean isBabyUndead(PlayerEntity player) {
         return BabyZombiePossessionController.isBabyZombiePossessing(player)
                 || BabyHuskPossessionController.isBabyHuskPossessing(player)
-                || BabyDrownedPossessionController.isBabyDrownedPossessing(player);
+                || BabyDrownedPossessionController.isBabyDrownedPossessing(player)
+                || net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerPossessionController.isBabyZombieVillagerPossessing(player);
     }
 
     public static void register() {

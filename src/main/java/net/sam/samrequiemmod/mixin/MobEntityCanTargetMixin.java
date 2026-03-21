@@ -45,7 +45,9 @@ public abstract class MobEntityCanTargetMixin {
                 || HuskPossessionController.isHuskPossessing(serverPlayer)
                 || BabyHuskPossessionController.isBabyHuskPossessing(serverPlayer)
                 || DrownedPossessionController.isDrownedPossessing(serverPlayer)
-                || BabyDrownedPossessionController.isBabyDrownedPossessing(serverPlayer);
+                || BabyDrownedPossessionController.isBabyDrownedPossessing(serverPlayer)
+                || net.sam.samrequiemmod.possession.zombie_villager.ZombieVillagerPossessionController.isZombieVillagerPossessing(serverPlayer)
+                || net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerPossessionController.isBabyZombieVillagerPossessing(serverPlayer);
 
         // Also block targeting if player is in post-possession immunity window
         boolean isImmune = net.sam.samrequiemmod.SamuelRequiemMod.POST_POSSESSION_IMMUNITY

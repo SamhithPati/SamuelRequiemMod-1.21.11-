@@ -17,6 +17,7 @@ import net.minecraft.entity.mob.EvokerEntity;
 import net.minecraft.entity.mob.VindicatorEntity;
 import net.minecraft.entity.mob.SkeletonEntity;
 import net.minecraft.entity.mob.SpiderEntity;
+import net.minecraft.entity.mob.ZombieVillagerEntity;
 import net.minecraft.entity.mob.ZombieEntity;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
@@ -52,6 +53,7 @@ public final class PossessedPlayerRenderHelper {
     private static VindicatorEntity cachedVindicator;
     private static PiglinBruteEntity cachedPiglinBrute;
     private static SpiderEntity cachedSpider;
+    private static ZombieVillagerEntity cachedZombieVillager;
 
     private PossessedPlayerRenderHelper() {
     }
@@ -130,6 +132,11 @@ public final class PossessedPlayerRenderHelper {
             if (cachedSpider == null || cachedSpider.getWorld() != world)
                 cachedSpider = new SpiderEntity(EntityType.SPIDER, world);
             return cachedSpider;
+        }
+        if (type == EntityType.ZOMBIE_VILLAGER) {
+            if (cachedZombieVillager == null || cachedZombieVillager.getWorld() != world)
+                cachedZombieVillager = new ZombieVillagerEntity(EntityType.ZOMBIE_VILLAGER, world);
+            return cachedZombieVillager;
         }
         return null;
     }
@@ -267,6 +274,10 @@ public final class PossessedPlayerRenderHelper {
             if (net.sam.samrequiemmod.possession.drowned.BabyDrownedState.isClientBaby(player.getUuid())) {
                 zombie.setBaby(true);
             }
+            // Baby zombie villager (ZombieVillagerEntity extends ZombieEntity)
+            if (net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerState.isClientBaby(player.getUuid())) {
+                zombie.setBaby(true);
+            }
             // Drowned trident charging pose: when player is using a trident, raise arms
             if (shell instanceof DrownedEntity && player.isUsingItem()) {
                 net.minecraft.item.ItemStack activeItem = player.getActiveItem();
@@ -275,6 +286,15 @@ public final class PossessedPlayerRenderHelper {
                 }
             }
         }
+        // Set riding pose: directly set the vehicle field so hasVehicle() returns true
+        // and the biped model renders with sitting legs. No startRiding() to avoid
+        // double-offset positioning.
+        if (player.hasVehicle() && player.getVehicle() instanceof net.minecraft.entity.passive.ChickenEntity) {
+            shell.vehicle = player.getVehicle();
+        } else {
+            shell.vehicle = null;
+        }
+
         if (shell instanceof Entity entity) {
             entity.setCustomName(player.getDisplayName());
             entity.setCustomNameVisible(false);
