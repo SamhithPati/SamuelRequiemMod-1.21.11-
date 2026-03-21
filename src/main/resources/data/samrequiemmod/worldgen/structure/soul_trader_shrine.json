@@ -1,0 +1,7 @@
+{
+  "type": "samrequiemmod:soul_trader_shrine",
+  "biomes": "#samrequiemmod:has_structure/soul_trader_shrine",
+  "step": "surface_structures",
+  "terrain_adaptation": "beard_thin",
+  "spawn_overrides": {}
+}

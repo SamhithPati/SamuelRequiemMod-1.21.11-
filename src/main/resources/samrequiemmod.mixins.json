@@ -1,0 +1,34 @@
+{
+	"required": true,
+	"package": "net.sam.samrequiemmod.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"EndermanEntityMixin",
+		"IronGolemEntityMixin",
+		"HungerManagerMixin",
+		"MobEntityCanTargetMixin",
+		"MobEntityTargetMixin",
+		"PlayerEntityDimensionsMixin",
+		"PlayerEntityZombieFoodMixin",
+		"VillagerEntityMixin",
+		"SlimeEntityMixin",
+		"ChickenEntityMixin$CanAddPassengerMixin",
+		"ChickenEntityMixin$InteractMixin",
+		"ChickenEntityMixin$ControllingPassengerMixin",
+		"ChickenEntityMixin$MountedHeightMixin",
+		"ChickenEntityMixin$TickMixin",
+		"ChickenEntityMixin$TravelMixin"
+	],
+	"client": [
+		"client.PillagerEntityMixin",
+		"client.PlayerEntityRendererMixin",
+		"client.ZombieEntityInWaterAccessor",
+		"client.EvokerEntitySpellAccessor"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}
