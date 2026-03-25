@@ -1,0 +1,113 @@
+package net.sam.samrequiemmod.possession.villager;
+
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.mob.IllagerEntity;
+import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.mob.RavagerEntity;
+import net.minecraft.entity.mob.ZombieEntity;
+import net.minecraft.entity.passive.IronGolemEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.math.Box;
+import net.sam.samrequiemmod.item.ModItems;
+import net.sam.samrequiemmod.possession.PossessionManager;
+import net.sam.samrequiemmod.possession.zombie.ZombieTargetingState;
+
+import java.util.UUID;
+
+public final class VillagerPossessionController {
+
+    private VillagerPossessionController() {}
+
+    public static boolean isVillagerPossessing(PlayerEntity player) {
+        return PossessionManager.getPossessedType(player) == EntityType.VILLAGER;
+    }
+
+    public static boolean isBabyVillagerPossessing(PlayerEntity player) {
+        return isVillagerPossessing(player) && VillagerState.isBaby(player);
+    }
+
+    public static void register() {
+        AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+            if (world.isClient) return ActionResult.PASS;
+            if (!(player instanceof ServerPlayerEntity serverPlayer)) return ActionResult.PASS;
+            if (!isVillagerPossessing(serverPlayer)) return ActionResult.PASS;
+            if (player.getMainHandStack().isOf(ModItems.POSSESSION_RELIC)) return ActionResult.PASS;
+            return ActionResult.FAIL;
+        });
+
+        ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
+            if (!(entity instanceof ServerPlayerEntity player)) return true;
+            if (!isVillagerPossessing(player)) return true;
+
+            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.ENTITY_VILLAGER_HURT, SoundCategory.PLAYERS, 1.0f, getPitch(player));
+
+            if (source.getAttacker() instanceof LivingEntity attacker) {
+                rallyNearbyGolems(player, attacker);
+                if (attacker instanceof MobEntity mob && !isVillagerAlwaysHostile(mob)) {
+                    ZombieTargetingState.markProvoked(mob.getUuid(), player.getUuid());
+                }
+            }
+            return true;
+        });
+
+        ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
+            if (!(entity instanceof ServerPlayerEntity player)) return;
+            if (!isVillagerPossessing(player)) return;
+            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.ENTITY_VILLAGER_DEATH, SoundCategory.PLAYERS, 1.0f, getPitch(player));
+        });
+    }
+
+    public static void tick(ServerPlayerEntity player) {
+        if (!isVillagerPossessing(player)) return;
+        lockHunger(player);
+        handleAmbientSound(player);
+    }
+
+    public static boolean isVillagerAlwaysHostile(Entity entity) {
+        return entity instanceof IllagerEntity
+                || entity instanceof RavagerEntity
+                || (entity instanceof ZombieEntity && !(entity instanceof net.minecraft.entity.mob.ZombifiedPiglinEntity));
+    }
+
+    public static void onUnpossess(ServerPlayerEntity player) {
+        onUnpossessUuid(player.getUuid());
+    }
+
+    public static void onUnpossessUuid(UUID uuid) {
+        VillagerState.setServerBaby(uuid, false);
+    }
+
+    private static void rallyNearbyGolems(ServerPlayerEntity player, LivingEntity attacker) {
+        for (IronGolemEntity golem : player.getServerWorld().getEntitiesByClass(
+                IronGolemEntity.class, player.getBoundingBox().expand(30.0), IronGolemEntity::isAlive)) {
+            golem.setTarget(attacker);
+            golem.setAngryAt(attacker.getUuid());
+        }
+    }
+
+    private static void lockHunger(ServerPlayerEntity player) {
+        player.getHungerManager().setFoodLevel(7);
+        player.getHungerManager().setSaturationLevel(0.0f);
+    }
+
+    private static void handleAmbientSound(ServerPlayerEntity player) {
+        if (player.age % 140 != 0) return;
+        if (player.getRandom().nextFloat() >= 0.4f) return;
+        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                SoundEvents.ENTITY_VILLAGER_AMBIENT, SoundCategory.NEUTRAL, 1.0f, getPitch(player));
+    }
+
+    private static float getPitch(PlayerEntity player) {
+        return isBabyVillagerPossessing(player) ? 1.35f : 1.0f;
+    }
+}

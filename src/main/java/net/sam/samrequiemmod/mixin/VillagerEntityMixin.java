@@ -30,7 +30,8 @@ public abstract class VillagerEntityMixin {
                 0.8,
                 1.2,
                 entity -> entity instanceof PlayerEntity player
-                        && PillagerPossessionController.isPillagerPossessing(player)
+                        && (PillagerPossessionController.isPillagerPossessing(player)
+                        || net.sam.samrequiemmod.possession.illager.RavagerPossessionController.isRavagerPossessing(player))
         ));
     }
 }

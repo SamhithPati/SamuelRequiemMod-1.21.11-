@@ -22,6 +22,9 @@ public abstract class HungerManagerMixin {
         // Only cancel for player entities that are possessing a mob
         if (!((Object) this instanceof PlayerEntity player)) return;
         if (PossessionManager.isPossessing(player)) {
+            // Allow healing from Regeneration and Instant Health status effects
+            if (player.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.REGENERATION)) return;
+            if (player.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.INSTANT_HEALTH)) return;
             ci.cancel();
         }
     }

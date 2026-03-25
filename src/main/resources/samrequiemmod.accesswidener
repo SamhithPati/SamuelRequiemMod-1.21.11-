@@ -2,5 +2,16 @@ accessWidener v2 named
 
 accessible field net/minecraft/entity/mob/MobEntity goalSelector Lnet/minecraft/entity/ai/goal/GoalSelector;
 accessible field net/minecraft/entity/mob/MobEntity targetSelector Lnet/minecraft/entity/ai/goal/GoalSelector;
-accessible method net/minecraft/entity/mob/SpellcastingIllagerEntity setCurrentSpell (Lnet/minecraft/entity/mob/SpellcastingIllagerEntity$Spell;)V
 accessible field net/minecraft/entity/Entity vehicle Lnet/minecraft/entity/Entity;
+accessible field net/minecraft/entity/mob/RavagerEntity attackTick I
+accessible field net/minecraft/entity/mob/RavagerEntity roarTick I
+accessible field net/minecraft/entity/mob/RavagerEntity stunTick I
+accessible field net/minecraft/entity/passive/IronGolemEntity attackTicksLeft I
+accessible field net/minecraft/entity/Entity touchingWater Z
+accessible field net/minecraft/entity/mob/AbstractPiglinEntity timeInOverworld I
+accessible field net/minecraft/entity/mob/HoglinEntity movementCooldownTicks I
+accessible field net/minecraft/entity/mob/ZoglinEntity movementCooldownTicks I
+accessible field net/minecraft/entity/mob/GuardianEntity beamTicks I
+accessible method net/minecraft/entity/mob/GuardianEntity setBeamTarget (I)V
+accessible field net/minecraft/entity/Entity noClip Z
+accessible method net/minecraft/entity/mob/BlazeEntity setFireActive (Z)V

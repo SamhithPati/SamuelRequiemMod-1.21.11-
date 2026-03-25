@@ -259,7 +259,8 @@ public final class BabyHuskPossessionController {
         if (!player.isTouchingWater()) return;
         if (player.isSwimming()) player.setSwimming(false);
         Vec3d vel = player.getVelocity();
-        player.setVelocity(vel.x * 0.5, vel.y - 0.03, vel.z * 0.5);
+        double vy = Math.min(vel.y, -0.04);
+        player.setVelocity(vel.x * 0.5, vy, vel.z * 0.5);
         player.velocityModified = true;
     }
 

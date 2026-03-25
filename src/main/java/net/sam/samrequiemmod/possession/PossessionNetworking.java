@@ -37,6 +37,17 @@ public final class PossessionNetworking {
                 }
 
                 ClientPossessionState.set(payload.playerUuid(), type);
+
+                // Recalculate dimensions so camera eye height updates immediately
+                net.minecraft.client.MinecraftClient client = context.client();
+                if (client.world != null) {
+                    for (net.minecraft.client.network.AbstractClientPlayerEntity p : client.world.getPlayers()) {
+                        if (p.getUuid().equals(payload.playerUuid())) {
+                            p.calculateDimensions();
+                            break;
+                        }
+                    }
+                }
             });
         });
     }

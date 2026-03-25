@@ -250,18 +250,13 @@ public class SoulTraderShrine {
                 }
 
                 int stillAlive = 0;
-                java.util.List<java.util.UUID> stillTracked = new java.util.ArrayList<>();
-
-                for (java.util.UUID uuid : state.spawnedMobs) {
-                    net.minecraft.entity.Entity entity = world.getEntity(uuid);
-                    if (entity instanceof net.minecraft.entity.mob.MobEntity mob && mob.isAlive()) {
-                        stillAlive++;
-                        stillTracked.add(uuid);
-                    }
+                String shrineMobTag = getShrineMobTag(centre);
+                for (net.minecraft.entity.mob.MobEntity mob : world.getEntitiesByClass(
+                        net.minecraft.entity.mob.MobEntity.class,
+                        new net.minecraft.util.math.Box(centre).expand(24.0),
+                        living -> living.isAlive() && living.getCommandTags().contains(shrineMobTag))) {
+                    stillAlive++;
                 }
-
-                state.spawnedMobs.clear();
-                state.spawnedMobs.addAll(stillTracked);
 
                 net.sam.samrequiemmod.SamuelRequiemMod.LOGGER.info(
                         "[Wave] Wave {} check: {} alive (tracked={})",
@@ -297,7 +292,7 @@ public class SoulTraderShrine {
     private static void startWave(ServerWorld world, BlockPos centre, WaveState state) {
         state.spawnedMobs.clear();
         state.waitingForDeath = false; // will be set to true after spawning
-        state.checkCooldown = 20; // 5 second grace period so mobs fully load before checking
+        state.checkCooldown = 100; // 5 second grace period so mobs fully load before checking
         int[][] waveComposition = {
                 {3, 2},  // Wave 1: 3 zombies, 2 skeletons
                 {4, 3},  // Wave 2: 4 zombies, 3 skeletons
@@ -305,6 +300,7 @@ public class SoulTraderShrine {
         };
         int[] comp = waveComposition[state.wave - 1];
         int zombies = comp[0], skeletons = comp[1];
+        String shrineMobTag = getShrineMobTag(centre);
 
         net.sam.samrequiemmod.SamuelRequiemMod.LOGGER.info("[Wave] Starting wave {} at {}", state.wave, centre);
         broadcastNearby(world, centre,
@@ -343,6 +339,7 @@ public class SoulTraderShrine {
                         net.minecraft.entity.effect.StatusEffects.RESISTANCE, 100, 4, false, false));
                 zombie.setHealth(zombie.getMaxHealth());
                 zombie.setPersistent();
+                zombie.addCommandTag(shrineMobTag);
 
                 boolean spawned = world.spawnEntity(zombie);
                 if (spawned) {
@@ -372,6 +369,7 @@ public class SoulTraderShrine {
                         net.minecraft.entity.effect.StatusEffects.RESISTANCE, 100, 4, false, false));
                 skeleton.setHealth(skeleton.getMaxHealth());
                 skeleton.setPersistent();
+                skeleton.addCommandTag(shrineMobTag);
 
                 boolean spawned = world.spawnEntity(skeleton);
                 if (spawned) {
@@ -421,6 +419,10 @@ public class SoulTraderShrine {
     }
 
     // ── Wave state ────────────────────────────────────────────────────────────
+
+    private static String getShrineMobTag(BlockPos centre) {
+        return "samrequiemmod_shrine_" + centre.getX() + "_" + centre.getY() + "_" + centre.getZ();
+    }
 
     private static class WaveState {
         final net.minecraft.registry.RegistryKey<net.minecraft.world.World> worldKey;

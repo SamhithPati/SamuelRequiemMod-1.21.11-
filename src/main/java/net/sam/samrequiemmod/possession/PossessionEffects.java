@@ -26,6 +26,15 @@ public final class PossessionEffects {
     private static final Identifier VINDICATOR_ATTACK_MODIFIER_ID =
             Identifier.of(SamuelRequiemMod.MOD_ID, "vindicator_attack");
 
+    private static final Identifier RAVAGER_REACH_MODIFIER_ID =
+            Identifier.of(SamuelRequiemMod.MOD_ID, "ravager_reach");
+
+    private static final Identifier IRON_GOLEM_REACH_MODIFIER_ID =
+            Identifier.of(SamuelRequiemMod.MOD_ID, "iron_golem_reach");
+
+    private static final Identifier IRON_GOLEM_KNOCKBACK_RESISTANCE_ID =
+            Identifier.of(SamuelRequiemMod.MOD_ID, "iron_golem_knockback_resistance");
+
     private PossessionEffects() {
     }
 
@@ -45,6 +54,64 @@ public final class PossessionEffects {
             profile = PossessionProfiles.BABY_DROWNED_PROFILE;
         } else if (type == EntityType.ZOMBIE_VILLAGER && net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerState.isServerBaby(player)) {
             profile = PossessionProfiles.BABY_ZOMBIE_VILLAGER_PROFILE;
+        } else if (type == EntityType.COW && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_COW_PROFILE;
+        } else if (type == EntityType.PIG && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_PIG_PROFILE;
+        } else if (type == EntityType.SHEEP && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_SHEEP_PROFILE;
+        } else if (type == EntityType.CHICKEN && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_CHICKEN_PROFILE;
+        } else if (type == EntityType.FOX && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_FOX_PROFILE;
+        } else if (type == EntityType.OCELOT && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_OCELOT_PROFILE;
+        } else if (type == EntityType.CAT && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_CAT_PROFILE;
+        } else if (type == EntityType.HORSE && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_HORSE_PROFILE;
+        } else if (type == EntityType.MULE && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_MULE_PROFILE;
+        } else if (type == EntityType.GOAT && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_GOAT_PROFILE;
+        } else if (type == EntityType.POLAR_BEAR && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_POLAR_BEAR_PROFILE;
+        } else if (type == EntityType.RABBIT && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_RABBIT_PROFILE;
+        } else if (type == EntityType.TURTLE && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_TURTLE_PROFILE;
+        } else if (type == EntityType.STRIDER && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_STRIDER_PROFILE;
+        } else if (type == EntityType.AXOLOTL && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_AXOLOTL_PROFILE;
+        } else if (type == EntityType.CAMEL && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_CAMEL_PROFILE;
+        } else if (type == EntityType.PIGLIN && net.sam.samrequiemmod.possession.piglin.BabyPiglinState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_PIGLIN_PROFILE;
+        } else if (type == EntityType.ZOMBIFIED_PIGLIN && net.sam.samrequiemmod.possession.piglin.BabyZombifiedPiglinState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_ZOMBIFIED_PIGLIN_PROFILE;
+        } else if (type == EntityType.HOGLIN && net.sam.samrequiemmod.possession.hoglin.BabyHoglinState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_HOGLIN_PROFILE;
+        } else if (type == EntityType.ZOGLIN && net.sam.samrequiemmod.possession.hoglin.BabyHoglinState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_ZOGLIN_PROFILE;
+        } else if (type == EntityType.SLIME) {
+            int size = net.sam.samrequiemmod.possession.slime.SlimeSizeState.getServerSize(player);
+            profile = switch (size) {
+                case net.sam.samrequiemmod.possession.slime.SlimeSizeState.MEDIUM -> PossessionProfiles.MEDIUM_SLIME_PROFILE;
+                case net.sam.samrequiemmod.possession.slime.SlimeSizeState.SMALL -> PossessionProfiles.SMALL_SLIME_PROFILE;
+                default -> PossessionProfiles.BIG_SLIME_PROFILE;
+            };
+        } else if (type == EntityType.MAGMA_CUBE) {
+            int size = net.sam.samrequiemmod.possession.slime.SlimeSizeState.getServerSize(player);
+            profile = switch (size) {
+                case net.sam.samrequiemmod.possession.slime.SlimeSizeState.MEDIUM -> PossessionProfiles.MEDIUM_MAGMA_CUBE_PROFILE;
+                case net.sam.samrequiemmod.possession.slime.SlimeSizeState.SMALL -> PossessionProfiles.SMALL_MAGMA_CUBE_PROFILE;
+                default -> PossessionProfiles.BIG_MAGMA_CUBE_PROFILE;
+            };
+        } else if (type == EntityType.WOLF && net.sam.samrequiemmod.possession.wolf.WolfBabyState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_WOLF_PROFILE;
+        } else if (type == EntityType.VILLAGER && net.sam.samrequiemmod.possession.villager.VillagerState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_VILLAGER_PROFILE;
         } else {
             profile = PossessionProfiles.get(type);
         }
@@ -102,6 +169,36 @@ public final class PossessionEffects {
                     EntityAttributeModifier.Operation.ADD_VALUE
             );
         }
+
+        // Ravager: extend entity interaction reach to 4 blocks for bite attack
+        if (type == EntityType.RAVAGER) {
+            applyModifier(
+                    player,
+                    EntityAttributes.PLAYER_ENTITY_INTERACTION_RANGE,
+                    RAVAGER_REACH_MODIFIER_ID,
+                    1.0, // player base 3 + 1 = 4 blocks
+                    EntityAttributeModifier.Operation.ADD_VALUE
+            );
+        }
+
+        // Iron Golem: extend entity interaction reach to 4 blocks
+        if (type == EntityType.IRON_GOLEM) {
+            applyModifier(
+                    player,
+                    EntityAttributes.PLAYER_ENTITY_INTERACTION_RANGE,
+                    IRON_GOLEM_REACH_MODIFIER_ID,
+                    1.0, // player base 3 + 1 = 4 blocks
+                    EntityAttributeModifier.Operation.ADD_VALUE
+            );
+            // Iron golem has 1.0 knockback resistance (fully immune)
+            applyModifier(
+                    player,
+                    EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE,
+                    IRON_GOLEM_KNOCKBACK_RESISTANCE_ID,
+                    1.0, // player base 0 + 1.0 = full immunity
+                    EntityAttributeModifier.Operation.ADD_VALUE
+            );
+        }
     }
 
     public static void clear(ServerPlayerEntity player) {
@@ -109,6 +206,9 @@ public final class PossessionEffects {
         removeModifier(player, EntityAttributes.GENERIC_ATTACK_DAMAGE, PILLAGER_ATTACK_MODIFIER_ID);
         removeModifier(player, EntityAttributes.GENERIC_ATTACK_DAMAGE, VINDICATOR_ATTACK_MODIFIER_ID);
         removeModifier(player, EntityAttributes.GENERIC_MOVEMENT_SPEED, SPEED_MODIFIER_ID);
+        removeModifier(player, EntityAttributes.PLAYER_ENTITY_INTERACTION_RANGE, RAVAGER_REACH_MODIFIER_ID);
+        removeModifier(player, EntityAttributes.PLAYER_ENTITY_INTERACTION_RANGE, IRON_GOLEM_REACH_MODIFIER_ID);
+        removeModifier(player, EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE, IRON_GOLEM_KNOCKBACK_RESISTANCE_ID);
 
         if (player.getHealth() > player.getMaxHealth()) {
             player.setHealth(player.getMaxHealth());

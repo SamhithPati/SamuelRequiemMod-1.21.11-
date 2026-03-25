@@ -27,9 +27,17 @@ public abstract class IronGolemEntityMixin {
                 true,
                 false,
                 entity -> entity instanceof PlayerEntity player
+                        && !net.sam.samrequiemmod.possession.iron_golem.IronGolemPossessionController.isIronGolemPossessing(player)
                         && (PillagerPossessionController.isPillagerPossessing(player)
                         || net.sam.samrequiemmod.possession.illager.VindicatorPossessionController.isVindicatorPossessing(player)
-                        || net.sam.samrequiemmod.possession.illager.EvokerPossessionController.isEvokerPossessing(player))
+                        || net.sam.samrequiemmod.possession.illager.EvokerPossessionController.isEvokerPossessing(player)
+                        || net.sam.samrequiemmod.possession.illager.RavagerPossessionController.isRavagerPossessing(player)
+                        || net.sam.samrequiemmod.possession.illager.WitchPossessionController.isWitchPossessing(player)
+                        || net.sam.samrequiemmod.possession.enderman.EndermanPossessionController.isEndermanPossessing(player)
+                        || net.sam.samrequiemmod.possession.piglin.PiglinPossessionController.isAnyPiglinPossessing(player)
+                        || net.sam.samrequiemmod.possession.piglin.BabyPiglinPossessionController.isBabyPiglinPossessing(player)
+                        || net.sam.samrequiemmod.possession.piglin.PiglinBrutePossessionController.isPiglinBrutePossessing(player)
+                        || net.sam.samrequiemmod.possession.piglin.ZombifiedPiglinPossessionController.isAnyZombifiedPiglinPossessing(player))
         ));
     }
 }

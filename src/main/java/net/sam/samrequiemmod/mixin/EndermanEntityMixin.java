@@ -34,7 +34,9 @@ public abstract class EndermanEntityMixin {
                 || BabyDrownedPossessionController.isBabyDrownedPossessing(player)
                 || net.sam.samrequiemmod.possession.illager.PillagerPossessionController.isPillagerPossessing(player)
                 || net.sam.samrequiemmod.possession.illager.VindicatorPossessionController.isVindicatorPossessing(player)
-                || net.sam.samrequiemmod.possession.illager.EvokerPossessionController.isEvokerPossessing(player)) {
+                || net.sam.samrequiemmod.possession.illager.EvokerPossessionController.isEvokerPossessing(player)
+                || net.sam.samrequiemmod.possession.iron_golem.IronGolemPossessionController.isIronGolemPossessing(player)
+                || net.sam.samrequiemmod.possession.enderman.EndermanPossessionController.isEndermanPossessing(player)) {
             cir.setReturnValue(false);
         }
     }

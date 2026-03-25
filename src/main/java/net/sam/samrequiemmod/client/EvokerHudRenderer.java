@@ -42,8 +42,13 @@ public final class EvokerHudRenderer {
             if (attackDown && !wasAttackKeyDown) {
                 // Raycast to find target up to 20 blocks away
                 LivingEntity target = raycastTarget(client, 20.0);
-                UUID targetUuid = (target != null) ? target.getUuid() : null;
-                ClientPlayNetworking.send(new EvokerNetworking.FangAttackPayload(targetUuid));
+                // Don't summon fangs when looking at the ravager we're riding
+                boolean isRiddenRavager = target instanceof net.minecraft.entity.mob.RavagerEntity
+                        && client.player.getVehicle() == target;
+                if (!isRiddenRavager) {
+                    UUID targetUuid = (target != null) ? target.getUuid() : null;
+                    ClientPlayNetworking.send(new EvokerNetworking.FangAttackPayload(targetUuid));
+                }
             }
             wasAttackKeyDown = attackDown;
 
