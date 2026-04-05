@@ -22,7 +22,7 @@ public final class PassiveMobPossessionController {
     public static void register() {
         // Block all melee attacks when possessing a passive mob
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity serverPlayer)) return ActionResult.PASS;
             if (!isPassiveMobPossessing(serverPlayer)) return ActionResult.PASS;
             // Allow possession relic usage
@@ -42,9 +42,8 @@ public final class PassiveMobPossessionController {
             // Slimes cancel damage elsewhere — don't play hurt sound for them
             if (source.getAttacker() instanceof net.minecraft.entity.mob.SlimeEntity) return true;
 
-            player.getWorld().playSound(null,
-                    player.getX(), player.getY(), player.getZ(),
-                    hurtSound, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, hurtSound, 1.0f);
             return true;
         });
 
@@ -79,10 +78,21 @@ public final class PassiveMobPossessionController {
         EntityType<?> type = PossessionManager.getPossessedType(player);
         if (type != EntityType.CHICKEN) return;
 
+        player.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
+                net.minecraft.entity.effect.StatusEffects.SLOW_FALLING,
+                20,
+                0,
+                false,
+                false,
+                false
+        ));
+
         if (!player.isOnGround() && player.getVelocity().y < 0.0) {
             Vec3d vel = player.getVelocity();
-            player.setVelocity(vel.x, vel.y * 0.6, vel.z);
-            player.velocityModified = true;
+            double slowedY = Math.max(vel.y * 0.35, -0.08);
+            player.setVelocity(vel.x, slowedY, vel.z);
+            player.fallDistance = 0.0f;
+            player.velocityDirty = true;
         }
     }
 
@@ -96,7 +106,7 @@ public final class PassiveMobPossessionController {
         SoundEvent ambientSound = getAmbientSound(type);
         if (ambientSound == null) return;
 
-        player.getWorld().playSound(null,
+        player.getEntityWorld().playSound(null,
                 player.getX(), player.getY(), player.getZ(),
                 ambientSound, SoundCategory.PLAYERS, 1.0f, 1.0f);
     }
@@ -195,3 +205,9 @@ public final class PassiveMobPossessionController {
                 || type == EntityType.SHEEP || type == EntityType.CHICKEN;
     }
 }
+
+
+
+
+
+

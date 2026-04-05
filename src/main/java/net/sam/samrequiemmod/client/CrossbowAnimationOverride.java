@@ -11,3 +11,8 @@ public interface CrossbowAnimationOverride {
     void samrequiemmod$setUseTimeOverride(int timeLeft, int timeElapsed, ItemStack activeItem);
     void samrequiemmod$clearUseTimeOverride();
 }
+
+
+
+
+

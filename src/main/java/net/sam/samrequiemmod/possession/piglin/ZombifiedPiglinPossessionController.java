@@ -12,9 +12,11 @@ import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.mob.ZombifiedPiglinEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.UnbreakableComponent;
+import net.minecraft.component.type.NbtComponent;
+import net.minecraft.util.Unit;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
@@ -41,6 +43,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class ZombifiedPiglinPossessionController {
 
+    private static final String GOLD_SPEAR_TAG = "samrequiemmod_gold_spear";
+
     private ZombifiedPiglinPossessionController() {}
 
     private static final Map<UUID, Long> LAST_HIT_TICK = new ConcurrentHashMap<>();
@@ -60,17 +64,15 @@ public final class ZombifiedPiglinPossessionController {
 
         // ── Attack ────────────────────────────────────────────────────────────
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isZombifiedPiglinPossessing(sp)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity livingTarget)) return ActionResult.PASS;
             if (player.getMainHandStack().isOf(ModItems.POSSESSION_RELIC)) return ActionResult.PASS;
-            if (player.getAttackCooldownProgress(0.5f) < 0.9f) return ActionResult.SUCCESS;
-
             // Zombified piglins always passive — deal damage but never provoke
             if (entity instanceof ZombifiedPiglinEntity) {
                 float damage = calculateDamage(sp);
-                livingTarget.damage(sp.getDamageSources().playerAttack(sp), damage);
+                livingTarget.damage(((net.minecraft.server.world.ServerWorld) livingTarget.getEntityWorld()), sp.getDamageSources().playerAttack(sp), damage);
                 LAST_HIT_TICK.put(sp.getUuid(), (long) sp.age);
                 ZombieAttackSyncNetworking.broadcastZombieAttacking(sp, true);
                 sp.swingHand(hand, true);
@@ -82,7 +84,7 @@ public final class ZombifiedPiglinPossessionController {
                 ZombieTargetingState.markProvoked(mob.getUuid());
 
             float damage = calculateDamage(sp);
-            boolean damaged = livingTarget.damage(sp.getDamageSources().playerAttack(sp), damage);
+            boolean damaged = livingTarget.damage(((net.minecraft.server.world.ServerWorld) livingTarget.getEntityWorld()), sp.getDamageSources().playerAttack(sp), damage);
 
             if (damaged) {
                 world.playSound(null, sp.getX(), sp.getY(), sp.getZ(),
@@ -112,8 +114,8 @@ public final class ZombifiedPiglinPossessionController {
             Entity attacker = source.getAttacker();
             if (attacker instanceof net.minecraft.entity.mob.SlimeEntity) return true;
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_ZOMBIFIED_PIGLIN_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_ZOMBIFIED_PIGLIN_HURT, 1.0f);
 
             if (attacker == null) return true;
 
@@ -128,7 +130,7 @@ public final class ZombifiedPiglinPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isZombifiedPiglinPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_ZOMBIFIED_PIGLIN_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }
@@ -154,7 +156,7 @@ public final class ZombifiedPiglinPossessionController {
 
         // Ambient sound
         if (player.age % 160 == 0 && player.getRandom().nextFloat() < 0.45f) {
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_ZOMBIFIED_PIGLIN_AMBIENT, SoundCategory.HOSTILE, 1.0f, 1.0f);
         }
     }
@@ -162,7 +164,7 @@ public final class ZombifiedPiglinPossessionController {
     // ── Damage ────────────────────────────────────────────────────────────────
     private static float calculateDamage(ServerPlayerEntity player) {
         ItemStack held = player.getMainHandStack();
-        Difficulty diff = player.getServerWorld().getDifficulty();
+        Difficulty diff = player.getEntityWorld().getDifficulty();
         // Golden sword: custom damage
         if (held.isOf(Items.GOLDEN_SWORD)) {
             return switch (diff) {
@@ -181,8 +183,16 @@ public final class ZombifiedPiglinPossessionController {
                 default     -> 10.0f;
             };
         }
+        if (held.isOf(Items.GOLDEN_SPEAR)) {
+            return switch (diff) {
+                case EASY   -> 5.0f;   // 2.5 hearts
+                case NORMAL -> 9.0f;   // 4.5 hearts
+                case HARD   -> 13.5f;  // 6.75 hearts
+                default     -> 9.0f;
+            };
+        }
         // Better weapons (netherite, diamond, etc.) use vanilla damage
-        double attr = player.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE);
+        double attr = player.getAttributeValue(EntityAttributes.ATTACK_DAMAGE);
         if (attr > 2.0) return (float) attr;
         // Bare hands
         return switch (diff) {
@@ -197,7 +207,7 @@ public final class ZombifiedPiglinPossessionController {
     static void rallyNearbyZombifiedPiglins(ServerPlayerEntity player, Entity threat) {
         if (!(threat instanceof LivingEntity livingThreat)) return;
         Box box = player.getBoundingBox().expand(40.0);
-        List<ZombifiedPiglinEntity> nearby = player.getWorld().getEntitiesByClass(
+        List<ZombifiedPiglinEntity> nearby = player.getEntityWorld().getEntitiesByClass(
                 ZombifiedPiglinEntity.class, box, z -> z.isAlive());
         for (ZombifiedPiglinEntity zp : nearby) {
             zp.setTarget(livingThreat);
@@ -220,16 +230,12 @@ public final class ZombifiedPiglinPossessionController {
     }
 
     static void preventNaturalHealing(ServerPlayerEntity player) {
-        if (player.timeUntilRegen > 0) player.timeUntilRegen = 0;
+        // HungerManagerMixin already blocks passive healing for possessed players.
+        // Do not touch timeUntilRegen here: vanilla also uses it for hurt i-frames.
     }
 
     static void preventSwimming(ServerPlayerEntity player) {
-        if (!player.isTouchingWater()) return;
-        if (player.isSwimming()) player.setSwimming(false);
-        Vec3d vel = player.getVelocity();
-        double vy = Math.min(vel.y, -0.04);
-        player.setVelocity(vel.x * 0.5, vy, vel.z * 0.5);
-        player.velocityModified = true;
+        net.sam.samrequiemmod.possession.NoSwimPossessionHelper.disableSwimmingPose(player);
     }
 
     static void preventDrowning(ServerPlayerEntity player) {
@@ -260,16 +266,19 @@ public final class ZombifiedPiglinPossessionController {
         if (ITEMS_GIVEN.contains(player.getUuid())) {
             ensureUnbreakable(player, Items.GOLDEN_SWORD);
             ensureUnbreakable(player, Items.GOLDEN_AXE);
+            ensureGoldSpear(player);
             return;
         }
 
         ItemStack sword = new ItemStack(Items.GOLDEN_SWORD);
-        sword.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+        sword.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
         ItemStack axe = new ItemStack(Items.GOLDEN_AXE);
-        axe.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+        axe.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
+        ItemStack spear = createGoldSpear();
 
         giveToSlot(player, sword, 0);
         giveToSlot(player, axe, 1);
+        giveToSlot(player, spear, 2);
         ITEMS_GIVEN.add(player.getUuid());
     }
 
@@ -284,8 +293,36 @@ public final class ZombifiedPiglinPossessionController {
         for (int i = 0; i < player.getInventory().size(); i++) {
             ItemStack s = player.getInventory().getStack(i);
             if (s.isOf(item) && !s.contains(DataComponentTypes.UNBREAKABLE))
-                s.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+                s.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
         }
+    }
+
+    private static ItemStack createGoldSpear() {
+        ItemStack spear = new ItemStack(Items.GOLDEN_SPEAR);
+        spear.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
+        NbtCompound nbt = new NbtCompound();
+        nbt.putBoolean(GOLD_SPEAR_TAG, true);
+        spear.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
+        return spear;
+    }
+
+    private static boolean isGoldSpear(ItemStack stack) {
+        if (!stack.isOf(Items.GOLDEN_SPEAR)) return false;
+        NbtComponent data = stack.get(DataComponentTypes.CUSTOM_DATA);
+        return data != null && data.copyNbt().contains(GOLD_SPEAR_TAG);
+    }
+
+    private static void ensureGoldSpear(ServerPlayerEntity player) {
+        for (int i = 0; i < player.getInventory().size(); i++) {
+            ItemStack stack = player.getInventory().getStack(i);
+            if (isGoldSpear(stack)) {
+                if (!stack.contains(DataComponentTypes.UNBREAKABLE)) {
+                    stack.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
+                }
+                return;
+            }
+        }
+        player.getInventory().offerOrDrop(createGoldSpear());
     }
 
     private static void removeItemType(ServerPlayerEntity player, net.minecraft.item.Item item) {
@@ -294,12 +331,21 @@ public final class ZombifiedPiglinPossessionController {
                 player.getInventory().setStack(i, ItemStack.EMPTY);
     }
 
+    private static void removeGoldSpears(ServerPlayerEntity player) {
+        for (int i = player.getInventory().size() - 1; i >= 0; i--) {
+            if (isGoldSpear(player.getInventory().getStack(i))) {
+                player.getInventory().setStack(i, ItemStack.EMPTY);
+            }
+        }
+    }
+
     // ── Unpossess ─────────────────────────────────────────────────────────────
     public static void onUnpossess(ServerPlayerEntity player) {
         LAST_HIT_TICK.remove(player.getUuid());
         ITEMS_GIVEN.remove(player.getUuid());
         removeItemType(player, Items.GOLDEN_SWORD);
         removeItemType(player, Items.GOLDEN_AXE);
+        removeGoldSpears(player);
         ZombieAttackSyncNetworking.broadcastZombieAttacking(player, false);
     }
 
@@ -308,3 +354,11 @@ public final class ZombifiedPiglinPossessionController {
         ITEMS_GIVEN.remove(uuid);
     }
 }
+
+
+
+
+
+
+
+

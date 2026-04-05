@@ -34,6 +34,8 @@ public final class PossessionEffects {
 
     private static final Identifier IRON_GOLEM_KNOCKBACK_RESISTANCE_ID =
             Identifier.of(SamuelRequiemMod.MOD_ID, "iron_golem_knockback_resistance");
+    private static final Identifier WARDEN_KNOCKBACK_RESISTANCE_ID =
+            Identifier.of(SamuelRequiemMod.MOD_ID, "warden_knockback_resistance");
 
     private PossessionEffects() {
     }
@@ -62,6 +64,8 @@ public final class PossessionEffects {
             profile = PossessionProfiles.BABY_SHEEP_PROFILE;
         } else if (type == EntityType.CHICKEN && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
             profile = PossessionProfiles.BABY_CHICKEN_PROFILE;
+        } else if (type == EntityType.PANDA && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_PANDA_PROFILE;
         } else if (type == EntityType.FOX && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
             profile = PossessionProfiles.BABY_FOX_PROFILE;
         } else if (type == EntityType.OCELOT && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
@@ -120,7 +124,7 @@ public final class PossessionEffects {
 
         applyModifier(
                 player,
-                EntityAttributes.GENERIC_MAX_HEALTH,
+                EntityAttributes.MAX_HEALTH,
                 HEALTH_MODIFIER_ID,
                 profile.getHealthBonus(),
                 EntityAttributeModifier.Operation.ADD_VALUE
@@ -128,7 +132,7 @@ public final class PossessionEffects {
 
         applyModifier(
                 player,
-                EntityAttributes.GENERIC_MOVEMENT_SPEED,
+                EntityAttributes.MOVEMENT_SPEED,
                 SPEED_MODIFIER_ID,
                 profile.getSpeedModifier(),
                 EntityAttributeModifier.Operation.ADD_VALUE
@@ -138,7 +142,7 @@ public final class PossessionEffects {
         if (type == EntityType.PILLAGER) {
             applyModifier(
                     player,
-                    EntityAttributes.GENERIC_ATTACK_DAMAGE,
+                    EntityAttributes.ATTACK_DAMAGE,
                     PILLAGER_ATTACK_MODIFIER_ID,
                     2.0,
                     EntityAttributeModifier.Operation.ADD_VALUE
@@ -150,7 +154,7 @@ public final class PossessionEffects {
         if (type == EntityType.VINDICATOR) {
             applyModifier(
                     player,
-                    EntityAttributes.GENERIC_ATTACK_DAMAGE,
+                    EntityAttributes.ATTACK_DAMAGE,
                     VINDICATOR_ATTACK_MODIFIER_ID,
                     1.0, // player base 2 + 1 = 3dmg = 1.5H on Normal
                     EntityAttributeModifier.Operation.ADD_VALUE
@@ -163,7 +167,7 @@ public final class PossessionEffects {
         if (type == EntityType.VINDICATOR) {
             applyModifier(
                     player,
-                    EntityAttributes.GENERIC_ATTACK_DAMAGE,
+                    EntityAttributes.ATTACK_DAMAGE,
                     PILLAGER_ATTACK_MODIFIER_ID,
                     1.0, // +1 on top of player base 1 = 2 HP = 1 heart on Easy
                     EntityAttributeModifier.Operation.ADD_VALUE
@@ -174,7 +178,7 @@ public final class PossessionEffects {
         if (type == EntityType.RAVAGER) {
             applyModifier(
                     player,
-                    EntityAttributes.PLAYER_ENTITY_INTERACTION_RANGE,
+                    EntityAttributes.ENTITY_INTERACTION_RANGE,
                     RAVAGER_REACH_MODIFIER_ID,
                     1.0, // player base 3 + 1 = 4 blocks
                     EntityAttributeModifier.Operation.ADD_VALUE
@@ -185,7 +189,7 @@ public final class PossessionEffects {
         if (type == EntityType.IRON_GOLEM) {
             applyModifier(
                     player,
-                    EntityAttributes.PLAYER_ENTITY_INTERACTION_RANGE,
+                    EntityAttributes.ENTITY_INTERACTION_RANGE,
                     IRON_GOLEM_REACH_MODIFIER_ID,
                     1.0, // player base 3 + 1 = 4 blocks
                     EntityAttributeModifier.Operation.ADD_VALUE
@@ -193,23 +197,34 @@ public final class PossessionEffects {
             // Iron golem has 1.0 knockback resistance (fully immune)
             applyModifier(
                     player,
-                    EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE,
+                    EntityAttributes.KNOCKBACK_RESISTANCE,
                     IRON_GOLEM_KNOCKBACK_RESISTANCE_ID,
                     1.0, // player base 0 + 1.0 = full immunity
                     EntityAttributeModifier.Operation.ADD_VALUE
             );
         }
+
+        if (type == EntityType.WARDEN) {
+            applyModifier(
+                    player,
+                    EntityAttributes.KNOCKBACK_RESISTANCE,
+                    WARDEN_KNOCKBACK_RESISTANCE_ID,
+                    1.0,
+                    EntityAttributeModifier.Operation.ADD_VALUE
+            );
+        }
+
     }
 
     public static void clear(ServerPlayerEntity player) {
-        removeModifier(player, EntityAttributes.GENERIC_MAX_HEALTH, HEALTH_MODIFIER_ID);
-        removeModifier(player, EntityAttributes.GENERIC_ATTACK_DAMAGE, PILLAGER_ATTACK_MODIFIER_ID);
-        removeModifier(player, EntityAttributes.GENERIC_ATTACK_DAMAGE, VINDICATOR_ATTACK_MODIFIER_ID);
-        removeModifier(player, EntityAttributes.GENERIC_MOVEMENT_SPEED, SPEED_MODIFIER_ID);
-        removeModifier(player, EntityAttributes.PLAYER_ENTITY_INTERACTION_RANGE, RAVAGER_REACH_MODIFIER_ID);
-        removeModifier(player, EntityAttributes.PLAYER_ENTITY_INTERACTION_RANGE, IRON_GOLEM_REACH_MODIFIER_ID);
-        removeModifier(player, EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE, IRON_GOLEM_KNOCKBACK_RESISTANCE_ID);
-
+        removeModifier(player, EntityAttributes.MAX_HEALTH, HEALTH_MODIFIER_ID);
+        removeModifier(player, EntityAttributes.ATTACK_DAMAGE, PILLAGER_ATTACK_MODIFIER_ID);
+        removeModifier(player, EntityAttributes.ATTACK_DAMAGE, VINDICATOR_ATTACK_MODIFIER_ID);
+        removeModifier(player, EntityAttributes.MOVEMENT_SPEED, SPEED_MODIFIER_ID);
+        removeModifier(player, EntityAttributes.ENTITY_INTERACTION_RANGE, RAVAGER_REACH_MODIFIER_ID);
+        removeModifier(player, EntityAttributes.ENTITY_INTERACTION_RANGE, IRON_GOLEM_REACH_MODIFIER_ID);
+        removeModifier(player, EntityAttributes.KNOCKBACK_RESISTANCE, IRON_GOLEM_KNOCKBACK_RESISTANCE_ID);
+        removeModifier(player, EntityAttributes.KNOCKBACK_RESISTANCE, WARDEN_KNOCKBACK_RESISTANCE_ID);
         if (player.getHealth() > player.getMaxHealth()) {
             player.setHealth(player.getMaxHealth());
         }
@@ -237,4 +252,11 @@ public final class PossessionEffects {
         if (instance == null) return;
         instance.removeModifier(id);
     }
+
 }
+
+
+
+
+
+

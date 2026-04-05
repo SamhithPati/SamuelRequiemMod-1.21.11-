@@ -18,7 +18,6 @@ public class ShrineCommand {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(
                     CommandManager.literal("shrine")
-                            .requires(src -> src.hasPermissionLevel(2))
                             .then(CommandManager.literal("locate")
                                     .executes(ctx -> locateShrine(ctx.getSource())))
                             .then(CommandManager.literal("generate")
@@ -47,7 +46,7 @@ public class ShrineCommand {
     private static int forceGenerate(ServerCommandSource source) {
         try {
             ServerPlayerEntity player = source.getPlayerOrThrow();
-            ServerWorld world = player.getServerWorld();
+            ServerWorld world = player.getEntityWorld();
             BlockPos pos = player.getBlockPos();
 
             for (int x = -4; x <= 4; x++)
@@ -69,7 +68,7 @@ public class ShrineCommand {
     private static int findBiome(ServerCommandSource source) {
         try {
             ServerPlayerEntity player = source.getPlayerOrThrow();
-            ServerWorld world = player.getServerWorld();
+            ServerWorld world = player.getEntityWorld();
             BlockPos pos = player.getBlockPos();
 
             source.sendFeedback(() -> Text.literal("§eSearching for nearest Dark Forest..."), false);
@@ -103,3 +102,8 @@ public class ShrineCommand {
         return 1;
     }
 }
+
+
+
+
+

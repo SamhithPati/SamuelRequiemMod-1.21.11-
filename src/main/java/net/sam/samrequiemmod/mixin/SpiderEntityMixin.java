@@ -36,13 +36,13 @@ public class SpiderEntityMixin {
         @Inject(method = "interactMob", at = @At("HEAD"), cancellable = true)
         private void samrequiemmod$mountSpider(PlayerEntity player, Hand hand,
                                                CallbackInfoReturnable<ActionResult> cir) {
-            if (player.getWorld().isClient) return;
+            if (player.getEntityWorld().isClient()) return;
             MobEntity self = (MobEntity)(Object)this;
             if (!SpiderRidingHelper.isSpiderType(self)) return;
             if (!SpiderRidingHelper.isSkeletonType(player)) return;
             if (player.getVehicle() == self) return;
             if (player.hasVehicle()) player.stopRiding();
-            player.startRiding(self, true);
+            player.startRiding(self, true, false);
             cir.setReturnValue(ActionResult.SUCCESS);
         }
     }
@@ -87,7 +87,7 @@ public class SpiderEntityMixin {
         private void samrequiemmod$spiderSneakDismount(CallbackInfo ci) {
             Entity self = (Entity)(Object)this;
             if (!SpiderRidingHelper.isSpiderType(self)) return;
-            if (self.getWorld().isClient) return;
+            if (self.getEntityWorld().isClient()) return;
             Entity first = self.getFirstPassenger();
             if (!(first instanceof ServerPlayerEntity rider)) return;
             if (!SpiderRidingHelper.isSkeletonType(rider)) return;
@@ -102,7 +102,7 @@ public class SpiderEntityMixin {
         private void samrequiemmod$spiderTravel(Vec3d input, CallbackInfo ci) {
             LivingEntity self = (LivingEntity)(Object)this;
             if (!SpiderRidingHelper.isSpiderType(self)) return;
-            if (self.getWorld().isClient) return;
+            if (self.getEntityWorld().isClient()) return;
             Entity first = self.getFirstPassenger();
             if (!(first instanceof ServerPlayerEntity rider)) return;
             if (!SpiderRidingHelper.isSkeletonType(rider)) return;
@@ -114,8 +114,8 @@ public class SpiderEntityMixin {
             self.headYaw = yaw;
             self.bodyYaw = yaw;
 
-            float fwd    = rider.forwardSpeed;
-            float strafe = rider.sidewaysSpeed;
+            float fwd = net.sam.samrequiemmod.possession.MountedPlayerInputHelper.getForwardInput(rider);
+            float strafe = net.sam.samrequiemmod.possession.MountedPlayerInputHelper.getStrafeInput(rider);
             double speed = 0.35; // spider speed
             double rad   = Math.toRadians(yaw);
             double dx    = (-Math.sin(rad) * fwd + Math.cos(rad) * strafe) * speed;
@@ -141,7 +141,7 @@ public class SpiderEntityMixin {
             }
 
             self.setVelocity(dx, vy, dz);
-            self.velocityModified = true;
+            self.velocityDirty = true;
 
             self.move(net.minecraft.entity.MovementType.SELF, self.getVelocity());
             self.setVelocity(self.getVelocity().multiply(0.91, isClimbing ? 1.0 : 0.98, 0.91));
@@ -149,3 +149,9 @@ public class SpiderEntityMixin {
         }
     }
 }
+
+
+
+
+
+

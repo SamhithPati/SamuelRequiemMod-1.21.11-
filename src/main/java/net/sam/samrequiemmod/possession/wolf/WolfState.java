@@ -10,6 +10,7 @@ public final class WolfState {
     private static final Set<UUID> SERVER_ANGRY = ConcurrentHashMap.newKeySet();
     private static final Set<UUID> CLIENT_ANGRY = ConcurrentHashMap.newKeySet();
     private static final Map<UUID, String> SERVER_VARIANTS = new ConcurrentHashMap<>();
+    private static final Map<UUID, String> SERVER_SOUND_VARIANTS = new ConcurrentHashMap<>();
     private static final Map<UUID, String> CLIENT_VARIANTS = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> CLIENT_SHAKE_UNTIL = new ConcurrentHashMap<>();
 
@@ -39,6 +40,14 @@ public final class WolfState {
         return SERVER_VARIANTS.getOrDefault(uuid, "minecraft:pale");
     }
 
+    public static void setServerSoundVariant(UUID uuid, String variantId) {
+        SERVER_SOUND_VARIANTS.put(uuid, variantId);
+    }
+
+    public static String getServerSoundVariant(UUID uuid) {
+        return SERVER_SOUND_VARIANTS.getOrDefault(uuid, "minecraft:classic");
+    }
+
     public static void setClientVariant(UUID uuid, String variantId) {
         CLIENT_VARIANTS.put(uuid, variantId);
     }
@@ -65,7 +74,14 @@ public final class WolfState {
         SERVER_ANGRY.remove(uuid);
         CLIENT_ANGRY.remove(uuid);
         SERVER_VARIANTS.remove(uuid);
+        SERVER_SOUND_VARIANTS.remove(uuid);
         CLIENT_VARIANTS.remove(uuid);
         CLIENT_SHAKE_UNTIL.remove(uuid);
     }
 }
+
+
+
+
+
+

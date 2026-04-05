@@ -28,7 +28,7 @@ public class SoulTraderShrinePiece extends StructurePiece {
 
     public SoulTraderShrinePiece(StructureContext context, NbtCompound nbt) {
         super(ModStructures.SOUL_TRADER_SHRINE_PIECE, nbt);
-        this.centre = BlockPos.fromLong(nbt.getLong("Centre"));
+        this.centre = BlockPos.fromLong(nbt.getLong("Centre").orElse(0L));
     }
 
     @Override
@@ -60,3 +60,8 @@ public class SoulTraderShrinePiece extends StructurePiece {
         // Soul Trader spawns only after all 3 waves are defeated (handled by SoulTraderShrine tick)
     }
 }
+
+
+
+
+

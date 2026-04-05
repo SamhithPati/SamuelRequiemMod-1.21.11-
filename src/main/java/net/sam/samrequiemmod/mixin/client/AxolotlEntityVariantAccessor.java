@@ -17,3 +17,9 @@ public interface AxolotlEntityVariantAccessor {
         throw new AssertionError();
     }
 }
+
+
+
+
+
+

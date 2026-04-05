@@ -19,7 +19,7 @@ public final class RavagerRidingHandler {
     public static void register() {
         // Block attacking the ridden ravager
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!isIllagerPossessed(player)) return ActionResult.PASS;
             if (!(entity instanceof RavagerEntity)) return ActionResult.PASS;
             if (player.getVehicle() == entity) return ActionResult.FAIL;
@@ -27,3 +27,9 @@ public final class RavagerRidingHandler {
         });
     }
 }
+
+
+
+
+
+

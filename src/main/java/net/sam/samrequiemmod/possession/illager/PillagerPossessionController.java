@@ -4,7 +4,7 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.UnbreakableComponent;
+import net.minecraft.util.Unit;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -20,7 +20,7 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.TypedActionResult;
+
 import net.minecraft.util.math.Box;
 import net.minecraft.world.Difficulty;
 import net.sam.samrequiemmod.possession.PossessionManager;
@@ -60,6 +60,7 @@ public final class PillagerPossessionController {
                 || e instanceof VindicatorEntity
                 || e instanceof EvokerEntity
                 || e instanceof IllusionerEntity
+                || e instanceof WitchEntity
                 || e instanceof RavagerEntity;
     }
 
@@ -71,7 +72,7 @@ public final class PillagerPossessionController {
 
         // ── Attack: mark provoked, handle melee damage ────────────────────────
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isPillagerPossessing(sp)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity)) return ActionResult.PASS;
@@ -85,8 +86,9 @@ public final class PillagerPossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isPillagerPossessing(player)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_PILLAGER_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
             ensureArrows(player);
@@ -100,8 +102,13 @@ public final class PillagerPossessionController {
             if (attacker instanceof LivingEntity livingAttacker) {
                 LAST_ATTACKER.put(player.getUuid(), livingAttacker.getUuid());
                 Box box = player.getBoundingBox().expand(40.0);
-                for (MobEntity mob : player.getServerWorld()
+                for (MobEntity mob : player.getEntityWorld()
                         .getEntitiesByClass(MobEntity.class, box, m -> isRallyMob(m) && m.isAlive())) {
+                    if (mob instanceof WitchEntity witch) {
+                        witch.setTarget(null);
+                        witch.getNavigation().stop();
+                        continue;
+                    }
                     mob.setTarget(livingAttacker);
                 }
             }
@@ -112,7 +119,7 @@ public final class PillagerPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isPillagerPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_PILLAGER_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }
@@ -135,7 +142,7 @@ public final class PillagerPossessionController {
             if (player.isUsingItem() && CrossbowItem.isCharged(mainHand) == false) {
                 // Player is actively charging — play charging sound occasionally
                 if (player.age % 10 == 0) {
-                    player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                    player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                             SoundEvents.ITEM_CROSSBOW_LOADING_MIDDLE,
                             SoundCategory.PLAYERS, 0.8f, 1.0f);
                 }
@@ -144,7 +151,7 @@ public final class PillagerPossessionController {
 
         // Ambient sound
         if (player.age % 100 == 0 && player.getRandom().nextFloat() < 0.3f) {
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_PILLAGER_AMBIENT, SoundCategory.PLAYERS, 1.0f, 1.0f);
         }
 
@@ -165,7 +172,7 @@ public final class PillagerPossessionController {
         UUID attackerUuid = LAST_ATTACKER.get(player.getUuid());
         if (attackerUuid == null) return;
 
-        net.minecraft.entity.Entity attackerEntity = player.getServerWorld().getEntity(attackerUuid);
+        net.minecraft.entity.Entity attackerEntity = player.getEntityWorld().getEntity(attackerUuid);
         if (!(attackerEntity instanceof net.minecraft.entity.LivingEntity attacker)
                 || !attacker.isAlive()) {
             LAST_ATTACKER.remove(player.getUuid());
@@ -173,9 +180,14 @@ public final class PillagerPossessionController {
         }
 
         net.minecraft.util.math.Box box = player.getBoundingBox().expand(40.0);
-        for (net.minecraft.entity.mob.MobEntity ally : player.getServerWorld()
+        for (net.minecraft.entity.mob.MobEntity ally : player.getEntityWorld()
                 .getEntitiesByClass(net.minecraft.entity.mob.MobEntity.class, box,
                         m -> isRallyMob(m) && m.isAlive())) {
+            if (ally instanceof WitchEntity witch) {
+                witch.setTarget(null);
+                witch.getNavigation().stop();
+                continue;
+            }
             if (ally.getTarget() == null || !ally.getTarget().isAlive()) {
                 ally.setTarget(attacker);
             }
@@ -186,7 +198,7 @@ public final class PillagerPossessionController {
     public static void scarVillagersPublic(ServerPlayerEntity player) {
         net.minecraft.util.math.Box box = player.getBoundingBox().expand(16.0);
         java.util.List<net.minecraft.entity.passive.VillagerEntity> villagers =
-                player.getServerWorld().getEntitiesByClass(
+                player.getEntityWorld().getEntitiesByClass(
                         net.minecraft.entity.passive.VillagerEntity.class, box,
                         v -> v.isAlive() && v.squaredDistanceTo(player) <= 16.0 * 16.0);
         for (net.minecraft.entity.passive.VillagerEntity villager : villagers) {
@@ -225,12 +237,12 @@ public final class PillagerPossessionController {
         ItemStack crossbow = new ItemStack(Items.CROSSBOW);
         try {
             crossbow.addEnchantment(
-                    player.getServerWorld().getRegistryManager()
-                            .get(RegistryKeys.ENCHANTMENT)
-                            .getEntry(Enchantments.INFINITY).orElseThrow(),
+                    player.getEntityWorld().getRegistryManager()
+                            .getOrThrow(RegistryKeys.ENCHANTMENT)
+                            .getOrThrow(Enchantments.INFINITY),
                     1);
         } catch (Exception ignored) {}
-        crossbow.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+        crossbow.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
 
         // Arrows (with Infinity on crossbow, one arrow is enough but give 64 for safety)
         ItemStack arrows = new ItemStack(Items.ARROW, 64);
@@ -253,8 +265,8 @@ public final class PillagerPossessionController {
 
     public static ItemStack createOminousBannerPublic(ServerPlayerEntity player) {
         try {
-            var patReg = player.getServerWorld().getRegistryManager()
-                    .get(net.minecraft.registry.RegistryKeys.BANNER_PATTERN);
+            var patReg = player.getEntityWorld().getRegistryManager()
+                    .getOrThrow(net.minecraft.registry.RegistryKeys.BANNER_PATTERN);
 
             // Log ALL available pattern IDs so we can confirm exact names
             patReg.getIds().forEach(id ->
@@ -279,9 +291,9 @@ public final class PillagerPossessionController {
                 var key = net.minecraft.registry.RegistryKey.of(
                         net.minecraft.registry.RegistryKeys.BANNER_PATTERN,
                         net.minecraft.util.Identifier.of("minecraft", p[0]));
-                var entry = patReg.getEntry(key);
-                final net.minecraft.util.DyeColor color = net.minecraft.util.DyeColor.byName(p[1], net.minecraft.util.DyeColor.WHITE);
-                entry.ifPresent(e -> layers.add(new net.minecraft.component.type.BannerPatternsComponent.Layer(e, color)));
+                var entry = patReg.getOrThrow(key);
+                final net.minecraft.util.DyeColor color = parseDyeColor(p[1]);
+                layers.add(new net.minecraft.component.type.BannerPatternsComponent.Layer(entry, color));
             }
             var banner = new ItemStack(Items.WHITE_BANNER);
             if (!layers.isEmpty())
@@ -305,7 +317,7 @@ public final class PillagerPossessionController {
         for (int i = 0; i < player.getInventory().size(); i++) {
             ItemStack s = player.getInventory().getStack(i);
             if (s.isOf(Items.CROSSBOW) && !s.contains(DataComponentTypes.UNBREAKABLE))
-                s.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+                s.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
         }
     }
 
@@ -314,6 +326,14 @@ public final class PillagerPossessionController {
         for (int i = 0; i < player.getInventory().size(); i++)
             if (player.getInventory().getStack(i).isOf(Items.ARROW)) { has = true; break; }
         if (!has) player.getInventory().offerOrDrop(new ItemStack(Items.ARROW, 64));
+    }
+
+    private static net.minecraft.util.DyeColor parseDyeColor(String name) {
+        try {
+            return net.minecraft.util.DyeColor.valueOf(name.toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+            return net.minecraft.util.DyeColor.WHITE;
+        }
     }
 
     // ── Hunger lock ───────────────────────────────────────────────────────────
@@ -385,3 +405,10 @@ public final class PillagerPossessionController {
         GIVEN_BANNER.remove(playerUuid);
     }
 }
+
+
+
+
+
+
+

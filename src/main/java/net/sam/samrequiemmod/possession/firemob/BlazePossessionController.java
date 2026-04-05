@@ -55,6 +55,7 @@ public final class BlazePossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isBlazePossessing(player)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
             if (source.equals(player.getDamageSources().onFire())
                     || source.equals(player.getDamageSources().inFire())
@@ -65,11 +66,11 @@ public final class BlazePossessionController {
             }
 
             if (source.getSource() instanceof SnowballEntity) {
-                player.damage(player.getDamageSources().freeze(), 4.0f);
+                player.damage(player.getEntityWorld(), player.getDamageSources().freeze(), 4.0f);
                 return false;
             }
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_BLAZE_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
             if (source.getAttacker() instanceof LivingEntity attacker) {
@@ -84,7 +85,7 @@ public final class BlazePossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isBlazePossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_BLAZE_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }
@@ -97,7 +98,7 @@ public final class BlazePossessionController {
 
         LivingEntity target = null;
         if (targetUuid != null) {
-            Entity entity = player.getServerWorld().getEntity(targetUuid);
+            Entity entity = player.getEntityWorld().getEntity(targetUuid);
             if (entity instanceof LivingEntity living && living.isAlive()) {
                 target = living;
             }
@@ -112,24 +113,24 @@ public final class BlazePossessionController {
     }
 
     private static void meleeAttack(ServerPlayerEntity player, LivingEntity target) {
-        float damage = switch (player.getServerWorld().getDifficulty()) {
+        float damage = switch (player.getEntityWorld().getDifficulty()) {
             case EASY -> 4.0f;
             case NORMAL -> 6.0f;
             case HARD -> 9.0f;
             default -> 6.0f;
         };
-        target.damage(player.getDamageSources().playerAttack(player), damage);
+        target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), player.getDamageSources().playerAttack(player), damage);
         if (target instanceof MobEntity mob && !isBlazeAlly(target)) {
             ZombieTargetingState.markProvoked(mob.getUuid(), player.getUuid());
         }
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_BLAZE_SHOOT, SoundCategory.PLAYERS, 1.0f, 1.0f);
         setFireActive(player);
     }
 
     private static void shootFireball(ServerPlayerEntity player) {
         Vec3d direction = player.getRotationVec(1.0f).normalize();
-        SmallFireballEntity fireball = new SmallFireballEntity(player.getWorld(), player, direction.multiply(0.1));
+        SmallFireballEntity fireball = new SmallFireballEntity(player.getEntityWorld(), player, direction.multiply(0.1));
         fireball.refreshPositionAndAngles(
                 player.getX() + direction.x * 0.8,
                 player.getEyeY() - 0.1,
@@ -137,8 +138,8 @@ public final class BlazePossessionController {
                 player.getYaw(),
                 player.getPitch()
         );
-        player.getWorld().spawnEntity(fireball);
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().spawnEntity(fireball);
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_BLAZE_SHOOT, SoundCategory.PLAYERS, 1.0f, 1.0f);
         setFireActive(player);
 
@@ -172,8 +173,8 @@ public final class BlazePossessionController {
     }
 
     private static void handleWaterDamage(ServerPlayerEntity player) {
-        if ((player.isTouchingWater() || player.isWet()) && player.age % 20 == 0) {
-            player.damage(player.getDamageSources().drown(), 4.0f);
+        if ((player.isTouchingWater() || player.isTouchingWaterOrRain()) && player.age % 20 == 0) {
+            player.damage(player.getEntityWorld(), player.getDamageSources().drown(), 4.0f);
         }
     }
 
@@ -192,24 +193,24 @@ public final class BlazePossessionController {
     private static void handleAmbientSound(ServerPlayerEntity player) {
         if (player.age % 100 != 0) return;
         if (player.getRandom().nextFloat() >= 0.5f) return;
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_BLAZE_AMBIENT, SoundCategory.HOSTILE, 1.0f, 1.0f);
     }
 
     private static void aggroGolems(ServerPlayerEntity player) {
         if (player.age % 10 != 0) return;
         Box box = player.getBoundingBox().expand(24.0);
-        for (IronGolemEntity golem : player.getWorld().getEntitiesByClass(IronGolemEntity.class, box, IronGolemEntity::isAlive)) {
+        for (IronGolemEntity golem : player.getEntityWorld().getEntitiesByClass(IronGolemEntity.class, box, IronGolemEntity::isAlive)) {
             golem.setTarget(player);
-            golem.setAngryAt(player.getUuid());
+            golem.setAngryAt(net.minecraft.entity.LazyEntityReference.of(player));
         }
-        for (SnowGolemEntity golem : player.getWorld().getEntitiesByClass(SnowGolemEntity.class, box, SnowGolemEntity::isAlive)) {
+        for (SnowGolemEntity golem : player.getEntityWorld().getEntitiesByClass(SnowGolemEntity.class, box, SnowGolemEntity::isAlive)) {
             golem.setTarget(player);
         }
     }
 
     private static void rallyNearbyBlazes(ServerPlayerEntity player, LivingEntity attacker) {
-        List<BlazeEntity> blazes = player.getServerWorld().getEntitiesByClass(
+        List<BlazeEntity> blazes = player.getEntityWorld().getEntitiesByClass(
                 BlazeEntity.class, player.getBoundingBox().expand(20.0), BlazeEntity::isAlive);
         for (BlazeEntity blaze : blazes) {
             blaze.setTarget(attacker);
@@ -257,3 +258,9 @@ public final class BlazePossessionController {
         FIRE_ACTIVE_UNTIL.remove(uuid);
     }
 }
+
+
+
+
+
+

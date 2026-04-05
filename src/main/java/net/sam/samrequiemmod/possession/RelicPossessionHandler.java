@@ -7,6 +7,7 @@ import net.minecraft.entity.mob.DrownedEntity;
 import net.minecraft.entity.mob.HuskEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.mob.ZombieEntity;
+import net.minecraft.entity.passive.PandaEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -27,7 +28,7 @@ public final class RelicPossessionHandler {
 
     public static void register() {
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity serverPlayer)) return ActionResult.PASS;
             if (hand != Hand.MAIN_HAND) return ActionResult.PASS;
             if (!player.getStackInHand(hand).isOf(ModItems.POSSESSION_RELIC)) return ActionResult.PASS;
@@ -47,9 +48,19 @@ public final class RelicPossessionHandler {
             }
 
             EntityType<?> type = livingTarget.getType();
-            if (type == EntityType.WARDEN || type == EntityType.WITHER
-                    || type == EntityType.ENDER_DRAGON || type == EntityType.BREEZE) {
+            if (type == EntityType.WITHER
+                    || type == EntityType.ENDER_DRAGON) {
                 return ActionResult.FAIL;
+            }
+
+            if (type == EntityType.WARDEN) {
+                float mobHealth = livingTarget.getHealth();
+                PossessionManager.startPossession(serverPlayer, type, mobHealth);
+                PossessionNetworking.broadcastPossessionSync(serverPlayer, type);
+                entity.discard();
+                serverPlayer.sendMessage(
+                        Text.literal("§5You used the Possession Relic on §fWarden"), true);
+                return ActionResult.SUCCESS;
             }
 
             // Iron Golem: allowed mob type
@@ -105,11 +116,20 @@ public final class RelicPossessionHandler {
                 return ActionResult.SUCCESS;
             }
 
-            // Passive mobs: cow, pig, sheep, chicken
+            // Passive mobs: cow, pig, sheep, chicken, panda
             if (type == EntityType.COW || type == EntityType.PIG
-                    || type == EntityType.SHEEP || type == EntityType.CHICKEN) {
+                    || type == EntityType.SHEEP || type == EntityType.CHICKEN
+                    || type == EntityType.PANDA) {
                 boolean isBabyPassive = (entity instanceof net.minecraft.entity.passive.PassiveEntity passive)
                         && passive.isBaby();
+                if (entity instanceof net.minecraft.entity.passive.SheepEntity sheep) {
+                    net.sam.samrequiemmod.possession.passive.SheepAppearanceState.setServerAppearance(
+                            serverPlayer.getUuid(), sheep.getColor(), sheep.isSheared());
+                }
+                if (entity instanceof PandaEntity panda) {
+                    net.sam.samrequiemmod.possession.passive.PandaAppearanceState.setServerAppearance(
+                            serverPlayer.getUuid(), panda.getMainGene(), panda.getHiddenGene());
+                }
                 if (isBabyPassive) {
                     net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.setServerBaby(serverPlayer.getUuid(), true);
                 }
@@ -118,6 +138,14 @@ public final class RelicPossessionHandler {
                 PossessionNetworking.broadcastPossessionSync(serverPlayer, type);
                 if (isBabyPassive) {
                     net.sam.samrequiemmod.possession.passive.BabyPassiveMobNetworking.broadcast(serverPlayer, true);
+                }
+                if (entity instanceof net.minecraft.entity.passive.SheepEntity sheep) {
+                    net.sam.samrequiemmod.possession.passive.SheepAppearanceNetworking.broadcast(
+                            serverPlayer, sheep.getColor(), sheep.isSheared());
+                }
+                if (entity instanceof PandaEntity panda) {
+                    net.sam.samrequiemmod.possession.passive.PandaAppearanceNetworking.broadcast(
+                            serverPlayer, panda.getMainGene(), panda.getHiddenGene());
                 }
                 entity.discard();
                 serverPlayer.sendMessage(
@@ -534,3 +562,9 @@ public final class RelicPossessionHandler {
         });
     }
 }
+
+
+
+
+
+

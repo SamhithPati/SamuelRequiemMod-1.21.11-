@@ -49,3 +49,9 @@ public final class SlimeSizeState {
         return BIG;
     }
 }
+
+
+
+
+
+

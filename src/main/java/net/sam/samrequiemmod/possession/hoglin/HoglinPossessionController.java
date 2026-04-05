@@ -79,7 +79,7 @@ public final class HoglinPossessionController {
 
     public static void register() {
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isAnyHoglinTypePossessing(sp)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity target)) return ActionResult.PASS;
@@ -87,7 +87,7 @@ public final class HoglinPossessionController {
             if (player.getAttackCooldownProgress(0.5f) < 0.9f) return ActionResult.SUCCESS;
 
             float damage = getAttackDamage(sp);
-            boolean damaged = target.damage(sp.getDamageSources().playerAttack(sp), damage);
+            boolean damaged = target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), sp.getDamageSources().playerAttack(sp), damage);
             if (damaged) {
                 Hoglin.knockback(sp, target);
                 playAttackFeedback(sp);
@@ -105,6 +105,7 @@ public final class HoglinPossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isAnyHoglinTypePossessing(player)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
             if (isAnyZoglinPossessing(player)) {
                 if (source.equals(player.getDamageSources().magic()) && player.hasStatusEffect(StatusEffects.POISON)) {
@@ -116,7 +117,7 @@ public final class HoglinPossessionController {
                 }
             }
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     getHurtSound(player), SoundCategory.PLAYERS, 1.0f, getPitch(player));
 
             Entity attacker = source.getAttacker();
@@ -133,7 +134,7 @@ public final class HoglinPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isAnyHoglinTypePossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     getDeathSound(player), SoundCategory.PLAYERS, 1.0f, getPitch(player));
         });
     }
@@ -157,7 +158,7 @@ public final class HoglinPossessionController {
     }
 
     private static void handleOverworldConversion(ServerPlayerEntity player) {
-        boolean inOverworld = player.getWorld().getRegistryKey() == World.OVERWORLD;
+        boolean inOverworld = player.getEntityWorld().getRegistryKey() == World.OVERWORLD;
         if (!inOverworld) {
             HoglinConversionTracker.reset(player.getUuid());
             return;
@@ -170,7 +171,7 @@ public final class HoglinPossessionController {
         float health = player.getHealth();
 
         HoglinConversionTracker.reset(player.getUuid());
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_HOGLIN_CONVERTED_TO_ZOMBIFIED, SoundCategory.HOSTILE, 1.0f, getPitch(player));
 
         PossessionManager.clearPossession(player);
@@ -186,24 +187,24 @@ public final class HoglinPossessionController {
     private static void handleAmbientSound(ServerPlayerEntity player) {
         if (player.age % 140 != 0) return;
         if (player.getRandom().nextFloat() >= 0.35f) return;
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 getAmbientSound(player), SoundCategory.HOSTILE, 1.0f, getPitch(player));
     }
 
     private static void aggroIronGolems(ServerPlayerEntity player) {
         if (player.age % 10 != 0) return;
         Box box = player.getBoundingBox().expand(24.0);
-        List<IronGolemEntity> golems = player.getWorld().getEntitiesByClass(
+        List<IronGolemEntity> golems = player.getEntityWorld().getEntitiesByClass(
                 IronGolemEntity.class, box, golem -> golem.isAlive());
         for (IronGolemEntity golem : golems) {
             golem.setTarget(player);
-            golem.setAngryAt(player.getUuid());
+            golem.setAngryAt(net.minecraft.entity.LazyEntityReference.of(player));
         }
     }
 
     private static void rallyNearbyHoglins(ServerPlayerEntity player, LivingEntity threat) {
         Box box = player.getBoundingBox().expand(30.0);
-        for (HoglinEntity hoglin : player.getServerWorld().getEntitiesByClass(
+        for (HoglinEntity hoglin : player.getEntityWorld().getEntitiesByClass(
                 HoglinEntity.class, box, entity -> entity.isAlive())) {
             if (hoglin.isBaby()) continue;
             if (hoglin.getUuid().equals(player.getUuid())) continue;
@@ -215,7 +216,7 @@ public final class HoglinPossessionController {
     }
 
     private static void playAttackFeedback(ServerPlayerEntity player) {
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 getAttackSound(player), SoundCategory.PLAYERS, 1.0f, getPitch(player));
     }
 
@@ -225,12 +226,7 @@ public final class HoglinPossessionController {
     }
 
     private static void preventSwimming(ServerPlayerEntity player) {
-        if (!player.isTouchingWater()) return;
-        if (player.isSwimming()) player.setSwimming(false);
-        Vec3d vel = player.getVelocity();
-        double vy = Math.min(vel.y, -0.04);
-        player.setVelocity(vel.x * 0.5, vy, vel.z * 0.5);
-        player.velocityModified = true;
+        net.sam.samrequiemmod.possession.NoSwimPossessionHelper.disableSwimmingPose(player);
     }
 
     private static void preventDrowning(ServerPlayerEntity player) {
@@ -262,7 +258,7 @@ public final class HoglinPossessionController {
     }
 
     private static float getAttackDamage(ServerPlayerEntity player) {
-        Difficulty difficulty = player.getServerWorld().getDifficulty();
+        Difficulty difficulty = player.getEntityWorld().getDifficulty();
         if (isAnyBabyPossessing(player)) {
             return switch (difficulty) {
                 case HARD -> 0.75f;
@@ -383,3 +379,9 @@ public final class HoglinPossessionController {
         BabyHoglinState.setServerBaby(uuid, false);
     }
 }
+
+
+
+
+
+

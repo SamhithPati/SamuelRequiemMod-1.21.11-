@@ -1,5 +1,6 @@
 {
   "item.samrequiemmod.possession_relic": "Possession Relic",
   "item.samrequiemmod.possession_relic_shard": "Possession Relic Shard",
-  "entity.samrequiemmod.corrupted_merchant": "Soul Trader"
+  "entity.samrequiemmod.corrupted_merchant": "Soul Trader",
+  "entity.samrequiemmod.soul_boss": "Soul Boss"
 }

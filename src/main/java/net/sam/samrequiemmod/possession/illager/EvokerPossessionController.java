@@ -56,7 +56,7 @@ public final class EvokerPossessionController {
 
         // ── Left-click: cancel melee — actual fang attack handled via FangAttackPayload from client ────
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isEvokerPossessing(sp)) return ActionResult.PASS;
             // Always cancel vanilla melee for evoker
@@ -67,8 +67,9 @@ public final class EvokerPossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isEvokerPossessing(player)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_EVOKER_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
             Entity attacker = source.getAttacker();
@@ -81,9 +82,14 @@ public final class EvokerPossessionController {
                 if (attacker instanceof MobEntity mob)
                     ZombieTargetingState.markProvoked(mob.getUuid(), player.getUuid());
                 Box box = player.getBoundingBox().expand(40.0);
-                for (MobEntity mob : player.getServerWorld()
+                for (MobEntity mob : player.getEntityWorld()
                         .getEntitiesByClass(MobEntity.class, box,
                                 m -> PillagerPossessionController.isRallyMob(m) && m.isAlive())) {
+                    if (mob instanceof WitchEntity witch) {
+                        witch.setTarget(null);
+                        witch.getNavigation().stop();
+                        continue;
+                    }
                     mob.setTarget(livingAttacker);
                 }
             }
@@ -94,7 +100,7 @@ public final class EvokerPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isEvokerPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_EVOKER_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }
@@ -111,13 +117,16 @@ public final class EvokerPossessionController {
             // No target in range — do nothing
             return;
         } else {
-            Entity target = player.getServerWorld().getEntity(targetUuid);
+            Entity target = player.getEntityWorld().getEntity(targetUuid);
             if (target instanceof LivingEntity le) {
-                // Set as vex target
                 VEX_TARGET.put(player.getUuid(), targetUuid);
                 VEX_TARGET_TICK.put(player.getUuid(), (long) player.age);
                 redirectVexes(player, le);
                 EvokerNetworking.broadcastTarget(player, targetUuid);
+
+                if (CaptainState.isCaptain(player) && !PillagerPossessionController.isIllagerAlly(le)) {
+                    commandNearbyAllies(player, le);
+                }
 
                 double dist = player.squaredDistanceTo(target);
                 if (dist <= 9.0) {
@@ -128,6 +137,40 @@ public final class EvokerPossessionController {
                 EvokerNetworking.broadcastCasting(player, 1);
             }
         }
+    }
+
+    private static void commandNearbyAllies(ServerPlayerEntity player, LivingEntity target) {
+        Box box = player.getBoundingBox().expand(40.0);
+        for (MobEntity mob : player.getEntityWorld()
+                .getEntitiesByClass(MobEntity.class, box,
+                        m -> PillagerPossessionController.isRallyMob(m) && m.isAlive())) {
+            if (mob instanceof WitchEntity witch) {
+                witch.setTarget(null);
+                witch.getNavigation().stop();
+                continue;
+            }
+            mob.setTarget(target);
+        }
+
+        if (CaptainState.isCaptain(player)) {
+            CaptainState.setCommandedTarget(player.getUuid(), target.getUuid());
+        }
+    }
+
+    private static void rallyNearbyAllies(ServerPlayerEntity player, LivingEntity target) {
+        if (target instanceof MobEntity mobTarget) {
+            ZombieTargetingState.markProvoked(mobTarget.getUuid(), player.getUuid());
+            mobTarget.setAttacker(player);
+        }
+
+        commandNearbyAllies(player, target);
+    }
+
+    public static void onFangHit(ServerPlayerEntity player, LivingEntity target) {
+        if (!isEvokerPossessing(player)) return;
+        if (PillagerPossessionController.isIllagerAlly(target)) return;
+        if (!CaptainState.isCaptain(player)) return;
+        rallyNearbyAllies(player, target);
     }
 
     public static void handleVexSummonPacket(ServerPlayerEntity player) {
@@ -143,7 +186,7 @@ public final class EvokerPossessionController {
         }
         if (targetUuid == null) return;
 
-        Entity targetEntity = player.getServerWorld().getEntity(targetUuid);
+        Entity targetEntity = player.getEntityWorld().getEntity(targetUuid);
         if (!(targetEntity instanceof LivingEntity target) || !target.isAlive()) return;
 
         LAST_VEX_TICK.put(player.getUuid(), (long) player.age);
@@ -155,7 +198,7 @@ public final class EvokerPossessionController {
 
     /** Vanilla-style fang circle: 8 inner ring then 8 outer ring, staggered warmup. */
     private static void spawnFangCircle(ServerPlayerEntity player) {
-        ServerWorld world = player.getServerWorld();
+        ServerWorld world = player.getEntityWorld();
         double x = player.getX(), y = player.getY(), z = player.getZ();
         // Vanilla evoker: inner ring radius=1.25, outer=2.5, staggered by ring
         for (int ring = 0; ring < 2; ring++) {
@@ -172,9 +215,9 @@ public final class EvokerPossessionController {
     }
 
     private static void spawnFangLine(ServerPlayerEntity player, LivingEntity target) {
-        ServerWorld world = player.getServerWorld();
-        Vec3d start = player.getPos().add(0, 0.5, 0);
-        Vec3d end = target.getPos().add(0, 0.5, 0);
+        ServerWorld world = player.getEntityWorld();
+        Vec3d start = player.getEntityPos().add(0, 0.5, 0);
+        Vec3d end = target.getEntityPos().add(0, 0.5, 0);
         Vec3d dir = end.subtract(start).normalize();
         double dist = start.distanceTo(end);
         int count = (int) Math.min(dist / 1.5, 14);
@@ -197,11 +240,11 @@ public final class EvokerPossessionController {
     // ── Vex summoning ─────────────────────────────────────────────────────────
 
     private static void summonVexes(ServerPlayerEntity player, LivingEntity target, int count) {
-        ServerWorld world = player.getServerWorld();
+        ServerWorld world = player.getEntityWorld();
         Set<UUID> playerVexes = SUMMONED_VEXES.computeIfAbsent(player.getUuid(), k -> ConcurrentHashMap.newKeySet());
         net.minecraft.util.math.random.Random rng = player.getRandom();
         for (int i = 0; i < count; i++) {
-            VexEntity vex = EntityType.VEX.create(world);
+            VexEntity vex = EntityType.VEX.create(world, net.minecraft.entity.SpawnReason.MOB_SUMMONED);
             if (vex == null) continue;
             double ox = player.getX() + (rng.nextDouble() - 0.5) * 3;
             double oy = player.getY() + rng.nextDouble() * 2;
@@ -221,7 +264,7 @@ public final class EvokerPossessionController {
     static void redirectVexes(ServerPlayerEntity player, LivingEntity target) {
         Set<UUID> vexUuids = SUMMONED_VEXES.get(player.getUuid());
         if (vexUuids == null || vexUuids.isEmpty()) return;
-        ServerWorld world = player.getServerWorld();
+        ServerWorld world = player.getEntityWorld();
         Set<UUID> dead = new HashSet<>();
         for (UUID vexUuid : vexUuids) {
             Entity e = world.getEntity(vexUuid);
@@ -240,7 +283,7 @@ public final class EvokerPossessionController {
         ensureEvokerItems(player);
 
         if (player.age % 100 == 0 && player.getRandom().nextFloat() < 0.3f) {
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_EVOKER_AMBIENT, SoundCategory.PLAYERS, 1.0f, 1.0f);
         }
 
@@ -261,7 +304,7 @@ public final class EvokerPossessionController {
     private static void cleanDeadVexes(ServerPlayerEntity player) {
         Set<UUID> vexUuids = SUMMONED_VEXES.get(player.getUuid());
         if (vexUuids == null || vexUuids.isEmpty()) return;
-        ServerWorld world = player.getServerWorld();
+        ServerWorld world = player.getEntityWorld();
         vexUuids.removeIf(uuid -> {
             Entity e = world.getEntity(uuid);
             return !(e instanceof VexEntity) || !e.isAlive();
@@ -328,3 +371,8 @@ public final class EvokerPossessionController {
         LAST_ATTACKER.remove(uuid); GIVEN_BANNER.remove(uuid);
     }
 }
+
+
+
+
+

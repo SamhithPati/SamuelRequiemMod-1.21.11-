@@ -73,9 +73,9 @@ public final class CreeperNetworking {
     // ── Broadcast charge state to all clients ────────────────────────────────
 
     public static void broadcastChargeSync(ServerPlayerEntity player, boolean charging, int fuseTicks, boolean charged) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         var pkt = new ChargeSyncPayload(player.getUuid(), charging, fuseTicks, charged);
-        for (ServerPlayerEntity r : player.getServer().getPlayerManager().getPlayerList())
+        for (ServerPlayerEntity r : player.getEntityWorld().getServer().getPlayerManager().getPlayerList())
             ServerPlayNetworking.send(r, pkt);
     }
 
@@ -119,3 +119,9 @@ public final class CreeperNetworking {
         @Override public Id<? extends CustomPayload> getId() { return ID; }
     }
 }
+
+
+
+
+
+

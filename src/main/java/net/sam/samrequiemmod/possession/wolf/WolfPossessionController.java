@@ -14,6 +14,8 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
@@ -22,7 +24,10 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Box;
 import net.minecraft.world.Difficulty;
+import net.minecraft.entity.passive.WolfSoundVariant;
+import net.minecraft.entity.passive.WolfSoundVariants;
 import net.sam.samrequiemmod.item.ModItems;
+import net.sam.samrequiemmod.mixin.WolfEntitySoundVariantAccessor;
 import net.sam.samrequiemmod.possession.PossessionManager;
 import net.sam.samrequiemmod.possession.zombie.ZombieTargetingState;
 
@@ -52,14 +57,14 @@ public final class WolfPossessionController {
 
     public static void register() {
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isWolfPossessing(sp)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity target)) return ActionResult.PASS;
             if (player.getMainHandStack().isOf(ModItems.POSSESSION_RELIC)) return ActionResult.PASS;
             if (player.getAttackCooldownProgress(0.5f) < 0.9f) return ActionResult.SUCCESS;
 
-            target.damage(sp.getDamageSources().playerAttack(sp), 3.0f);
+            target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), sp.getDamageSources().playerAttack(sp), 3.0f);
             if (entity instanceof MobEntity mob
                     && !(entity instanceof AbstractSkeletonEntity)
                     && !isWolfAlly(entity)) {
@@ -67,7 +72,7 @@ public final class WolfPossessionController {
             }
 
             sp.swingHand(hand, true);
-            sp.getWorld().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
+            sp.getEntityWorld().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
                     getAggroSound(sp), SoundCategory.PLAYERS, 1.0f, getPitch(sp));
             return ActionResult.SUCCESS;
         });
@@ -75,9 +80,13 @@ public final class WolfPossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isWolfPossessing(player)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_WOLF_HURT, SoundCategory.PLAYERS, 1.0f, getPitch(player));
+            RegistryEntry<SoundEvent> hurtSound = getHurtSound(player);
+            if (hurtSound != null) {
+                net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                        player, hurtSound, getPitch(player));
+            }
 
             Entity attacker = source.getAttacker();
             if (attacker instanceof LivingEntity livingAttacker) {
@@ -100,8 +109,11 @@ public final class WolfPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isWolfPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_WOLF_DEATH, SoundCategory.PLAYERS, 1.0f, getPitch(player));
+            RegistryEntry<SoundEvent> deathSound = getDeathSound(player);
+            if (deathSound != null) {
+                player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                        deathSound, SoundCategory.PLAYERS, 1.0f, getPitch(player));
+            }
         });
     }
 
@@ -117,11 +129,17 @@ public final class WolfPossessionController {
     public static void initializeWolfState(ServerPlayerEntity player, WolfEntity wolf) {
         WolfBabyState.setServerBaby(player.getUuid(), wolf.isBaby());
         WolfState.setServerAngry(player.getUuid(), false);
-        String variant = wolf.getVariant().getKey()
-                .map(RegistryKey::getValue)
-                .map(Identifier::toString)
-                .orElse("minecraft:pale");
-        WolfState.setServerVariant(player.getUuid(), variant);
+        RegistryEntry<?> variantEntry = wolf.get(DataComponentTypes.WOLF_VARIANT);
+        RegistryEntry<WolfSoundVariant> soundVariantEntry =
+                ((WolfEntitySoundVariantAccessor) wolf).samrequiemmod$getSoundVariant();
+        WolfState.setServerVariant(player.getUuid(),
+                variantEntry != null ? variantEntry.getKey()
+                        .map(key -> key.getValue().toString())
+                        .orElse("minecraft:pale") : "minecraft:pale");
+        WolfState.setServerSoundVariant(player.getUuid(),
+                soundVariantEntry != null ? soundVariantEntry.getKey()
+                        .map(key -> key.getValue().toString())
+                        .orElse("minecraft:classic") : "minecraft:classic");
     }
 
     public static void syncAllState(ServerPlayerEntity player) {
@@ -135,9 +153,11 @@ public final class WolfPossessionController {
         boolean angry = !WolfState.isServerAngry(player.getUuid());
         WolfState.setServerAngry(player.getUuid(), angry);
         WolfNetworking.broadcastAngry(player, angry);
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                angry ? SoundEvents.ENTITY_WOLF_GROWL : SoundEvents.ENTITY_WOLF_AMBIENT,
-                SoundCategory.PLAYERS, 1.0f, getPitch(player));
+        RegistryEntry<SoundEvent> sound = angry ? getGrowlSound(player) : getAmbientSound(player);
+        if (sound != null) {
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                    sound, SoundCategory.PLAYERS, 1.0f, getPitch(player));
+        }
     }
 
     public static boolean isWolfFood(ItemStack stack) {
@@ -180,19 +200,19 @@ public final class WolfPossessionController {
     }
 
     private static void rallyNearbyWolves(ServerPlayerEntity player, LivingEntity attacker) {
-        List<WolfEntity> wolves = player.getServerWorld().getEntitiesByClass(
+        List<WolfEntity> wolves = player.getEntityWorld().getEntitiesByClass(
                 WolfEntity.class, player.getBoundingBox().expand(20.0), WolfEntity::isAlive);
         for (WolfEntity wolf : wolves) {
             wolf.setTarget(attacker);
-            wolf.setAngryAt(attacker.getUuid());
-            wolf.setAngerTime(200);
+            wolf.setAngryAt(net.minecraft.entity.LazyEntityReference.of(attacker));
+            wolf.setAngerDuration(200L);
         }
     }
 
     private static void handleSkeletonFlee(ServerPlayerEntity player) {
         if (player.age % 10 != 0) return;
         Box box = player.getBoundingBox().expand(20.0);
-        for (AbstractSkeletonEntity skeleton : player.getServerWorld().getEntitiesByClass(
+        for (AbstractSkeletonEntity skeleton : player.getEntityWorld().getEntitiesByClass(
                 AbstractSkeletonEntity.class, box, AbstractSkeletonEntity::isAlive)) {
             clearSkeletonAggro(skeleton);
             double dx = skeleton.getX() - player.getX();
@@ -212,11 +232,11 @@ public final class WolfPossessionController {
     }
 
     private static void handleWaterShake(ServerPlayerEntity player) {
-        boolean isWet = player.isTouchingWater() || player.isWet();
+        boolean isWet = player.isTouchingWater() || player.isTouchingWaterOrRain();
         boolean wasWet = WAS_WET.getOrDefault(player.getUuid(), false);
         if (wasWet && !isWet) {
             WolfNetworking.broadcastShake(player, SHAKE_TICKS);
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_WOLF_SHAKE, SoundCategory.PLAYERS, 1.0f, getPitch(player));
         }
         WAS_WET.put(player.getUuid(), isWet);
@@ -230,16 +250,59 @@ public final class WolfPossessionController {
     private static void handleAmbientSound(ServerPlayerEntity player) {
         if (player.age % 120 != 0) return;
         if (player.getRandom().nextFloat() >= 0.4f) return;
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                WolfState.isServerAngry(player.getUuid()) ? getAggroSound(player) : SoundEvents.ENTITY_WOLF_AMBIENT,
-                SoundCategory.HOSTILE, 1.0f, getPitch(player));
+        RegistryEntry<SoundEvent> sound = WolfState.isServerAngry(player.getUuid()) ? getAggroSound(player) : getAmbientSound(player);
+        if (sound != null) {
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                    sound, SoundCategory.HOSTILE, 1.0f, getPitch(player));
+        }
     }
 
-    private static SoundEvent getAggroSound(PlayerEntity player) {
-        return WolfState.isServerAngry(player.getUuid()) ? SoundEvents.ENTITY_WOLF_GROWL : SoundEvents.ENTITY_WOLF_PANT;
+    public static RegistryEntry<SoundEvent> getDeathSound(PlayerEntity player) {
+        WolfSoundVariant variant = getWolfSoundVariant(player);
+        return variant == null ? null : variant.deathSound();
+    }
+
+    private static RegistryEntry<SoundEvent> getHurtSound(PlayerEntity player) {
+        WolfSoundVariant variant = getWolfSoundVariant(player);
+        return variant == null ? null : variant.hurtSound();
+    }
+
+    private static RegistryEntry<SoundEvent> getAmbientSound(PlayerEntity player) {
+        WolfSoundVariant variant = getWolfSoundVariant(player);
+        return variant == null ? null : variant.ambientSound();
+    }
+
+    private static RegistryEntry<SoundEvent> getGrowlSound(PlayerEntity player) {
+        WolfSoundVariant variant = getWolfSoundVariant(player);
+        return variant == null ? null : variant.growlSound();
+    }
+
+    private static RegistryEntry<SoundEvent> getAggroSound(PlayerEntity player) {
+        WolfSoundVariant variant = getWolfSoundVariant(player);
+        return variant == null ? null
+                : (WolfState.isServerAngry(player.getUuid()) ? variant.growlSound() : variant.pantSound());
+    }
+
+    private static WolfSoundVariant getWolfSoundVariant(PlayerEntity player) {
+        try {
+            var registry = player.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.WOLF_SOUND_VARIANT);
+            String variantId = WolfState.getServerSoundVariant(player.getUuid());
+            return registry.getEntry(Identifier.of(variantId))
+                    .or(() -> registry.getOptional(WolfSoundVariants.CLASSIC))
+                    .map(RegistryEntry::value)
+                    .orElse(null);
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private static float getPitch(PlayerEntity player) {
         return isBabyWolfPossessing(player) ? 1.35f : 1.0f;
     }
 }
+
+
+
+
+
+

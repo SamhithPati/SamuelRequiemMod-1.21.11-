@@ -55,7 +55,7 @@ public final class FelinePossessionController {
 
     public static void register() {
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isAnyFelinePossessing(sp)) return ActionResult.PASS;
             if (player.getMainHandStack().isOf(ModItems.POSSESSION_RELIC)) return ActionResult.PASS;
@@ -69,14 +69,14 @@ public final class FelinePossessionController {
                 return ActionResult.FAIL;
             }
 
-            target.damage(sp.getDamageSources().playerAttack(sp), 2.0f);
+            target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), sp.getDamageSources().playerAttack(sp), 2.0f);
             if (entity instanceof CreeperEntity creeper) {
                 clearCreeperAggro(creeper);
             } else if (entity instanceof MobEntity mob) {
                 ZombieTargetingState.markProvoked(mob.getUuid(), sp.getUuid());
             }
             sp.swingHand(hand, true);
-            sp.getWorld().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
+            sp.getEntityWorld().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
                     getAmbientSound(sp), SoundCategory.PLAYERS, 1.0f, getPitch(sp));
             return ActionResult.SUCCESS;
         });
@@ -84,9 +84,10 @@ public final class FelinePossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isAnyFelinePossessing(player)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
             if (source.equals(player.getDamageSources().fall())) return false;
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     getHurtSound(player), SoundCategory.PLAYERS, 1.0f, getPitch(player));
 
             if (source.getAttacker() instanceof CreeperEntity creeper) {
@@ -102,7 +103,7 @@ public final class FelinePossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isAnyFelinePossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     getDeathSound(player), SoundCategory.PLAYERS, 1.0f, getPitch(player));
         });
     }
@@ -165,7 +166,7 @@ public final class FelinePossessionController {
     private static void handleCreeperFlee(ServerPlayerEntity player) {
         if (player.age % 10 != 0) return;
         Box box = player.getBoundingBox().expand(20.0);
-        for (CreeperEntity creeper : player.getServerWorld().getEntitiesByClass(CreeperEntity.class, box, CreeperEntity::isAlive)) {
+        for (CreeperEntity creeper : player.getEntityWorld().getEntitiesByClass(CreeperEntity.class, box, CreeperEntity::isAlive)) {
             clearCreeperAggro(creeper);
             double dx = creeper.getX() - player.getX();
             double dz = creeper.getZ() - player.getZ();
@@ -194,7 +195,7 @@ public final class FelinePossessionController {
     private static void handleAmbientSound(ServerPlayerEntity player) {
         if (player.age % 140 != 0) return;
         if (player.getRandom().nextFloat() >= 0.4f) return;
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 getAmbientSound(player), SoundCategory.PLAYERS, 1.0f, getPitch(player));
     }
 
@@ -218,3 +219,9 @@ public final class FelinePossessionController {
         return 1.0f;
     }
 }
+
+
+
+
+
+

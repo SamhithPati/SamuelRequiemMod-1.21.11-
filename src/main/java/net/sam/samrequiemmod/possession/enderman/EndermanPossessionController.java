@@ -11,6 +11,7 @@ import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.network.packet.s2c.play.PositionFlag;
 import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
@@ -19,6 +20,7 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
@@ -58,7 +60,7 @@ public final class EndermanPossessionController {
 
         // ── Left-click: custom melee damage ─────────────────────────────────
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isEndermanPossessing(sp)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity target)) return ActionResult.PASS;
@@ -70,7 +72,7 @@ public final class EndermanPossessionController {
                 case HARD     -> 15.5f;
                 default       -> 10.5f; // Normal + Peaceful
             };
-            target.damage(sp.getDamageSources().playerAttack(sp), damage);
+            target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), sp.getDamageSources().playerAttack(sp), damage);
 
             // Mark provoked for non-allies
             if (entity instanceof MobEntity mob) {
@@ -83,19 +85,20 @@ public final class EndermanPossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isEndermanPossessing(player)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
             // Projectile dodge: auto-teleport away
             if (source.getSource() instanceof ProjectileEntity) {
                 boolean teleported = teleportRandomly(player, 20);
                 if (teleported) {
-                    player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                    player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                             SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.PLAYERS, 1.0f, 1.0f);
                 }
                 return false; // cancel projectile damage
             }
 
             // Play hurt sound
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_ENDERMAN_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
             return true;
         });
@@ -104,7 +107,7 @@ public final class EndermanPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isEndermanPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_ENDERMAN_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }
@@ -117,26 +120,26 @@ public final class EndermanPossessionController {
         lockHunger(player);
 
         // Water damage (1 HP every 10 ticks = 0.5 seconds)
-        if (player.isTouchingWater() || player.isWet()) {
+        if (player.isTouchingWater() || player.isTouchingWaterOrRain()) {
             if (player.age % 10 == 0) {
-                player.damage(player.getDamageSources().drown(), 1.0f);
+                player.damage(player.getEntityWorld(), player.getDamageSources().drown(), 1.0f);
             }
         }
 
         // Ambient sounds
         if (player.age % 160 == 0 && player.getRandom().nextFloat() < 0.3f) {
             if (isAngry(player.getUuid())) {
-                player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                         SoundEvents.ENTITY_ENDERMAN_SCREAM, SoundCategory.PLAYERS, 1.0f, 1.0f);
             } else {
-                player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                         SoundEvents.ENTITY_ENDERMAN_AMBIENT, SoundCategory.PLAYERS, 1.0f, 1.0f);
             }
         }
 
         // Stare sound when angry (every 3 seconds)
         if (isAngry(player.getUuid()) && player.age % 60 == 0) {
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_ENDERMAN_STARE, SoundCategory.PLAYERS, 0.5f, 1.0f);
         }
 
@@ -145,7 +148,7 @@ public final class EndermanPossessionController {
         // so we manually assign targets every second.
         if (player.age % 20 == 0) {
             net.minecraft.util.math.Box box = player.getBoundingBox().expand(16.0);
-            for (MobEntity mob : player.getServerWorld()
+            for (MobEntity mob : player.getEntityWorld()
                     .getEntitiesByClass(MobEntity.class, box, m -> m.isAlive())) {
                 if ((mob instanceof net.minecraft.entity.passive.SnowGolemEntity
                         || mob instanceof net.minecraft.entity.mob.EndermiteEntity)
@@ -168,7 +171,7 @@ public final class EndermanPossessionController {
         long lastTeleport = LAST_TELEPORT_TICK.getOrDefault(player.getUuid(), -1000L);
         if ((long) player.age - lastTeleport < 20) return false;
 
-        World world = player.getWorld();
+        World world = player.getEntityWorld();
         Vec3d eyePos = player.getEyePos();
         Vec3d lookDir = player.getRotationVector();
         Vec3d endPos = eyePos.add(lookDir.multiply(30.0));
@@ -207,9 +210,9 @@ public final class EndermanPossessionController {
                 SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
         // Teleport
-        player.teleport(player.getServerWorld(),
+        player.teleport(player.getEntityWorld(),
                 targetPos.getX() + 0.5, targetPos.getY(), targetPos.getZ() + 0.5,
-                player.getYaw(), player.getPitch());
+                java.util.Set.<PositionFlag>of(), player.getYaw(), player.getPitch(), false);
 
         // Play teleport sound at destination
         world.playSound(null, player.getX(), player.getY(), player.getZ(),
@@ -224,7 +227,7 @@ public final class EndermanPossessionController {
      * Used for projectile dodging.
      */
     private static boolean teleportRandomly(ServerPlayerEntity player, int radius) {
-        World world = player.getWorld();
+        World world = player.getEntityWorld();
 
         for (int attempt = 0; attempt < 20; attempt++) {
             double dx = (player.getRandom().nextDouble() - 0.5) * 2.0 * radius;
@@ -241,9 +244,9 @@ public final class EndermanPossessionController {
             BlockPos landingPos = testPos.up();
 
             if (isSafeTeleportDestination(world, landingPos)) {
-                player.teleport(player.getServerWorld(),
+                player.teleport(player.getEntityWorld(),
                         landingPos.getX() + 0.5, landingPos.getY(), landingPos.getZ() + 0.5,
-                        player.getYaw(), player.getPitch());
+                        java.util.Set.<PositionFlag>of(), player.getYaw(), player.getPitch(), false);
                 LAST_TELEPORT_TICK.put(player.getUuid(), (long) player.age);
                 return true;
             }
@@ -262,8 +265,10 @@ public final class EndermanPossessionController {
         BlockPos belowPos = feetPos.down();
         BlockState belowState = world.getBlockState(belowPos);
 
-        // Must have a solid block below
-        if (!belowState.isSolidBlock(world, belowPos)) return false;
+        // Must have a collidable block below. Using collision instead of isSolidBlock
+        // allows normal standable blocks like ice to count as valid landing surfaces.
+        VoxelShape belowShape = belowState.getCollisionShape(world, belowPos);
+        if (belowShape.isEmpty()) return false;
 
         // Check that the block below isn't water or lava
         FluidState belowFluid = world.getFluidState(belowPos);
@@ -273,7 +278,7 @@ public final class EndermanPossessionController {
         for (int dy = 0; dy < 3; dy++) {
             BlockPos checkPos = feetPos.up(dy);
             BlockState state = world.getBlockState(checkPos);
-            if (!state.isAir() && state.isSolidBlock(world, checkPos)) return false;
+            if (!state.getCollisionShape(world, checkPos).isEmpty()) return false;
 
             // No water or lava in the body space
             FluidState fluid = world.getFluidState(checkPos);
@@ -320,9 +325,9 @@ public final class EndermanPossessionController {
         // Search up and down from center Y
         for (int dy = 0; dy <= 10; dy++) {
             BlockPos up = center.up(dy);
-            if (up.getY() < world.getTopY() && isSafeTeleportDestination(world, up)) return up;
+            if (world.isInBuildLimit(up) && isSafeTeleportDestination(world, up)) return up;
             BlockPos down = center.down(dy);
-            if (down.getY() > world.getBottomY() && isSafeTeleportDestination(world, down)) return down;
+            if (world.isInBuildLimit(down) && isSafeTeleportDestination(world, down)) return down;
         }
         return null;
     }
@@ -337,7 +342,7 @@ public final class EndermanPossessionController {
 
         // Play scream sound when becoming angry
         if (newState) {
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_ENDERMAN_SCREAM, SoundCategory.PLAYERS, 1.0f, 1.0f);
         }
 
@@ -382,3 +387,9 @@ public final class EndermanPossessionController {
         ANGRY_STATE.remove(uuid);
     }
 }
+
+
+
+
+
+

@@ -32,3 +32,9 @@ public final class CatState {
         CLIENT_VARIANTS.remove(uuid);
     }
 }
+
+
+
+
+
+

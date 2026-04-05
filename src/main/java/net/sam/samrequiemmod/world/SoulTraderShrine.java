@@ -158,10 +158,11 @@ public class SoulTraderShrine {
         world.setBlockState(c.add( 2, 1,  2), Blocks.SOUL_TORCH.getDefaultState(), 3);
 
         // Chains hanging from roof corners
-        world.setBlockState(c.add(-2, 6, -2), Blocks.CHAIN.getDefaultState(), 3);
-        world.setBlockState(c.add( 2, 6, -2), Blocks.CHAIN.getDefaultState(), 3);
-        world.setBlockState(c.add(-2, 6,  2), Blocks.CHAIN.getDefaultState(), 3);
-        world.setBlockState(c.add( 2, 6,  2), Blocks.CHAIN.getDefaultState(), 3);
+        var chainState = net.minecraft.registry.Registries.BLOCK.get(net.minecraft.util.Identifier.ofVanilla("chain")).getDefaultState();
+        world.setBlockState(c.add(-2, 6, -2), chainState, 3);
+        world.setBlockState(c.add( 2, 6, -2), chainState, 3);
+        world.setBlockState(c.add(-2, 6,  2), chainState, 3);
+        world.setBlockState(c.add( 2, 6,  2), chainState, 3);
 
         // Random bone blocks scattered on soul sand ring
         int[] boneOffsets = {-2, 2};
@@ -324,7 +325,7 @@ public class SoulTraderShrine {
         for (int i = 0; i < zombies; i++) {
             BlockPos sp = spawnPoints[spawnIdx % spawnPoints.length];
             spawnIdx++;
-            ZombieEntity zombie = EntityType.ZOMBIE.create(world);
+            ZombieEntity zombie = EntityType.ZOMBIE.create(world, SpawnReason.STRUCTURE);
             if (zombie != null) {
                 zombie.refreshPositionAndAngles(sp.getX() + 0.5, sp.getY(), sp.getZ() + 0.5, 0, 0);
                 zombie.equipStack(EquipmentSlot.HEAD,     new ItemStack(Items.IRON_HELMET));
@@ -354,7 +355,7 @@ public class SoulTraderShrine {
         for (int i = 0; i < skeletons; i++) {
             BlockPos sp = spawnPoints[spawnIdx % spawnPoints.length];
             spawnIdx++;
-            SkeletonEntity skeleton = EntityType.SKELETON.create(world);
+            SkeletonEntity skeleton = EntityType.SKELETON.create(world, SpawnReason.STRUCTURE);
             if (skeleton != null) {
                 skeleton.refreshPositionAndAngles(sp.getX() + 0.5, sp.getY(), sp.getZ() + 0.5, 0, 0);
                 skeleton.equipStack(EquipmentSlot.HEAD,     new ItemStack(Items.IRON_HELMET));
@@ -396,7 +397,7 @@ public class SoulTraderShrine {
         // Clear the soul fire first
         world.setBlockState(spawnPos, Blocks.AIR.getDefaultState(), 3);
 
-        var trader = ModEntities.CORRUPTED_MERCHANT.create(world);
+        var trader = ModEntities.CORRUPTED_MERCHANT.create(world, SpawnReason.EVENT);
         if (trader != null) {
             trader.refreshPositionAndAngles(
                     spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, 0, 0);
@@ -439,3 +440,9 @@ public class SoulTraderShrine {
         }
     }
 }
+
+
+
+
+
+

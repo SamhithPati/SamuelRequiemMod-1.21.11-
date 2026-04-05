@@ -19,7 +19,6 @@ public final class PossessionCommand {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(
                     CommandManager.literal("possess")
-                            .requires(source -> source.hasPermissionLevel(2))
                             .then(CommandManager.argument("entity_id", IdentifierArgumentType.identifier())
                                     .suggests((context, builder) -> {
                                         net.minecraft.registry.Registries.ENTITY_TYPE.getIds().forEach(id ->
@@ -35,13 +34,11 @@ public final class PossessionCommand {
 
             dispatcher.register(
                     CommandManager.literal("unpossess")
-                            .requires(source -> source.hasPermissionLevel(2))
                             .executes(ctx -> unpossess(ctx.getSource()))
             );
 
             dispatcher.register(
                     CommandManager.literal("possessionstatus")
-                            .requires(source -> source.hasPermissionLevel(2))
                             .executes(ctx -> status(ctx.getSource()))
             );
         });
@@ -120,3 +117,8 @@ public final class PossessionCommand {
         }
     }
 }
+
+
+
+
+

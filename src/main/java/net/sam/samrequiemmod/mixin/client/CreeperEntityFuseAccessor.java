@@ -35,3 +35,9 @@ public interface CreeperEntityFuseAccessor {
     @Accessor("lastFuseTime")
     void setLastFuseTime(int value);
 }
+
+
+
+
+
+

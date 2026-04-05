@@ -55,7 +55,7 @@ public final class CaptainNetworking {
                 "key.samrequiemmod.recruit",
                 InputUtil.Type.KEYSYM,
                 org.lwjgl.glfw.GLFW.GLFW_KEY_Y,
-                "category.samrequiemmod.possession"
+                KeyBinding.Category.MISC
         ));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -89,7 +89,7 @@ public final class CaptainNetworking {
 
     public static void broadcastCelebration(ServerPlayerEntity player, boolean celebrating) {
         CelebrationSyncPayload payload = new CelebrationSyncPayload(player.getUuid(), celebrating);
-        for (ServerPlayerEntity other : player.getServerWorld().getPlayers()) {
+        for (ServerPlayerEntity other : player.getEntityWorld().getPlayers()) {
             ServerPlayNetworking.send(other, payload);
         }
     }
@@ -131,3 +131,9 @@ public final class CaptainNetworking {
         public Id<? extends CustomPayload> getId() { return ID; }
     }
 }
+
+
+
+
+
+

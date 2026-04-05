@@ -37,13 +37,13 @@ public class RavagerEntityMixin {
         @Inject(method = "interactMob", at = @At("HEAD"), cancellable = true)
         private void samrequiemmod$mountRavager(PlayerEntity player, Hand hand,
                                                 CallbackInfoReturnable<ActionResult> cir) {
-            if (player.getWorld().isClient) return;
+            if (player.getEntityWorld().isClient()) return;
             MobEntity self = (MobEntity)(Object)this;
             if (!(self instanceof RavagerEntity ravager)) return;
             if (!RavagerRidingHandler.isIllagerPossessed(player)) return;
             if (player.getVehicle() == ravager) return;
             if (player.hasVehicle()) player.stopRiding();
-            player.startRiding(ravager, true);
+            player.startRiding(ravager, true, false);
             cir.setReturnValue(ActionResult.SUCCESS);
         }
     }
@@ -88,7 +88,7 @@ public class RavagerEntityMixin {
         private void samrequiemmod$ravagerSneakDismount(CallbackInfo ci) {
             Entity self = (Entity)(Object)this;
             if (!(self instanceof RavagerEntity)) return;
-            if (self.getWorld().isClient) return;
+            if (self.getEntityWorld().isClient()) return;
             Entity first = self.getFirstPassenger();
             if (!(first instanceof ServerPlayerEntity rider)) return;
             if (!RavagerRidingHandler.isIllagerPossessed(rider)) return;
@@ -103,7 +103,7 @@ public class RavagerEntityMixin {
         private void samrequiemmod$ravagerTravel(Vec3d input, CallbackInfo ci) {
             LivingEntity self = (LivingEntity)(Object)this;
             if (!(self instanceof RavagerEntity ravager)) return;
-            if (self.getWorld().isClient) return;
+            if (self.getEntityWorld().isClient()) return;
             Entity first = ravager.getFirstPassenger();
             if (!(first instanceof ServerPlayerEntity rider)) return;
             if (!RavagerRidingHandler.isIllagerPossessed(rider)) return;
@@ -115,8 +115,8 @@ public class RavagerEntityMixin {
             ravager.headYaw = yaw;
             ravager.bodyYaw = yaw;
 
-            float fwd    = rider.forwardSpeed;
-            float strafe = rider.sidewaysSpeed;
+            float fwd = net.sam.samrequiemmod.possession.MountedPlayerInputHelper.getForwardInput(rider);
+            float strafe = net.sam.samrequiemmod.possession.MountedPlayerInputHelper.getStrafeInput(rider);
             double speed = 0.45;
             double rad   = Math.toRadians(yaw);
             double dx    = (-Math.sin(rad) * fwd + Math.cos(rad) * strafe) * speed;
@@ -135,7 +135,7 @@ public class RavagerEntityMixin {
             }
 
             ravager.setVelocity(dx, vy, dz);
-            ravager.velocityModified = true;
+            ravager.velocityDirty = true;
 
             ravager.move(net.minecraft.entity.MovementType.SELF, ravager.getVelocity());
             ravager.setVelocity(ravager.getVelocity().multiply(0.91, 0.98, 0.91));
@@ -143,3 +143,9 @@ public class RavagerEntityMixin {
         }
     }
 }
+
+
+
+
+
+

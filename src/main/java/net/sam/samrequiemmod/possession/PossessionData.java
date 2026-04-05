@@ -27,3 +27,8 @@ public class PossessionData {
         this.possessedType = null;
     }
 }
+
+
+
+
+

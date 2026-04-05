@@ -47,3 +47,9 @@ public final class TropicalFishVariantState {
         CLIENT_VARIANTS.remove(playerUuid);
     }
 }
+
+
+
+
+
+

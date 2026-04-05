@@ -56,3 +56,8 @@ public abstract class EvokerEntitySpellAccessor implements net.sam.samrequiemmod
         }
     }
 }
+
+
+
+
+

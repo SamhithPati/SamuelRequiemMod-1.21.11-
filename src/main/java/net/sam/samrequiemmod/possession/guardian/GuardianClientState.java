@@ -37,3 +37,9 @@ public final class GuardianClientState {
 
     private record BeamState(UUID targetUuid, int warmupTicks, long startedAtMs) {}
 }
+
+
+
+
+
+

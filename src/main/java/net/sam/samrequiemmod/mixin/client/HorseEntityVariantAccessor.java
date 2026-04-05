@@ -12,3 +12,9 @@ public interface HorseEntityVariantAccessor {
         throw new AssertionError();
     }
 }
+
+
+
+
+
+

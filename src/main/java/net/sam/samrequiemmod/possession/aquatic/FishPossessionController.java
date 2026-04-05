@@ -71,7 +71,7 @@ public final class FishPossessionController {
 
         // ── Left-click: block melee for all fish EXCEPT pufferfish special ──
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isFishPossessing(sp)) return ActionResult.PASS;
             // Allow possession relic usage
@@ -82,7 +82,7 @@ public final class FishPossessionController {
             // Pufferfish special attack
             if (possType == EntityType.PUFFERFISH && entity instanceof LivingEntity target) {
                 // Deal 1 heart (2 HP) of damage
-                target.damage(sp.getDamageSources().playerAttack(sp), 2.0f);
+                target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), sp.getDamageSources().playerAttack(sp), 2.0f);
 
                 // Apply Poison IV for 7 seconds (140 ticks)
                 target.addStatusEffect(new StatusEffectInstance(
@@ -113,12 +113,12 @@ public final class FishPossessionController {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             EntityType<?> type = PossessionManager.getPossessedType(player);
             if (!isFishType(type)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
             var hurtSound = getHurtSound(type);
             if (hurtSound != null) {
-                player.getWorld().playSound(null,
-                        player.getX(), player.getY(), player.getZ(),
-                        hurtSound, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                        player, hurtSound, 1.0f);
             }
             return true;
         });
@@ -165,7 +165,7 @@ public final class FishPossessionController {
             if (ticks > 300) {
                 // Apply drowning damage every second (20 ticks)
                 if (ticks % 20 == 0) {
-                    player.damage(player.getDamageSources().drown(), 2.0f);
+                    player.damage(player.getEntityWorld(), player.getDamageSources().drown(), 2.0f);
                 }
             }
 
@@ -209,10 +209,10 @@ public final class FishPossessionController {
             double sideX = (player.getRandom().nextDouble() - 0.5) * 0.3;
             double sideZ = (player.getRandom().nextDouble() - 0.5) * 0.3;
             player.setVelocity(sideX, hopY, sideZ);
-            player.velocityModified = true;
+            player.velocityDirty = true;
 
             // Play flop sound
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_GUARDIAN_FLOP, SoundCategory.PLAYERS, 0.5f, 1.0f);
         }
     }
@@ -243,7 +243,7 @@ public final class FishPossessionController {
         var sound = getAmbientSound(type);
         if (sound == null) return;
 
-        player.getWorld().playSound(null,
+        player.getEntityWorld().playSound(null,
                 player.getX(), player.getY(), player.getZ(),
                 sound, SoundCategory.PLAYERS, 1.0f, 1.0f);
     }
@@ -253,7 +253,7 @@ public final class FishPossessionController {
     private static net.minecraft.sound.SoundEvent getAmbientSound(EntityType<?> type) {
         if (type == EntityType.COD) return SoundEvents.ENTITY_COD_AMBIENT;
         if (type == EntityType.SALMON) return SoundEvents.ENTITY_SALMON_AMBIENT;
-        if (type == EntityType.PUFFERFISH) return SoundEvents.ENTITY_PUFFER_FISH_AMBIENT;
+        if (type == EntityType.PUFFERFISH) return SoundEvents.ENTITY_FISH_SWIM;
         if (type == EntityType.TROPICAL_FISH) return SoundEvents.ENTITY_TROPICAL_FISH_AMBIENT;
         return null;
     }
@@ -295,3 +295,9 @@ public final class FishPossessionController {
         OUT_OF_WATER_TICKS.remove(uuid);
     }
 }
+
+
+
+
+
+

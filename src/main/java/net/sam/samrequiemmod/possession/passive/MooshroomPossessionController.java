@@ -43,7 +43,7 @@ public final class MooshroomPossessionController {
                 BROWN_MOOSHROOM_PLAYERS.add(player.getUuid());
                 // Broadcast color state to clients
                 MooshroomNetworking.broadcastColorSync(player, true);
-                player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                         SoundEvents.ENTITY_COW_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
                 return false; // don't take the lightning damage
             }
@@ -58,3 +58,9 @@ public final class MooshroomPossessionController {
         BROWN_MOOSHROOM_PLAYERS.remove(playerUuid);
     }
 }
+
+
+
+
+
+

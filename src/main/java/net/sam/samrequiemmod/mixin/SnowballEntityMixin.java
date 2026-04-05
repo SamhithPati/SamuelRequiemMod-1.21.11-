@@ -19,10 +19,21 @@ public abstract class SnowballEntityMixin {
     private void samrequiemmod$damageBlazePossessedPlayer(EntityHitResult entityHitResult, CallbackInfo ci) {
         Entity entity = entityHitResult.getEntity();
         if (!(entity instanceof ServerPlayerEntity player)) return;
-        if (!BlazePossessionController.isBlazePossessing(player)) return;
 
-        player.damage(player.getDamageSources().freeze(), 4.0f);
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                SoundEvents.ENTITY_BLAZE_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+        if (BlazePossessionController.isBlazePossessing(player)) {
+            player.damage(player.getEntityWorld(), player.getDamageSources().freeze(), 4.0f);
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.ENTITY_BLAZE_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            return;
+        }
+
+        // Non-blaze possessions should still be targetable/hittable by snow golems,
+        // but only blaze takes extra damage from a snowball impact.
     }
 }
+
+
+
+
+
+

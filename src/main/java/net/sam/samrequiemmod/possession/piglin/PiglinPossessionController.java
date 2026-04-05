@@ -3,7 +3,7 @@ package net.sam.samrequiemmod.possession.piglin;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.UnbreakableComponent;
+import net.minecraft.util.Unit;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -65,7 +65,7 @@ public final class PiglinPossessionController {
 
         // ── Attack: custom damage, arms raised, rally ─────────────────────────
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isPiglinPossessing(sp)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity livingTarget)) return ActionResult.PASS;
@@ -75,7 +75,7 @@ public final class PiglinPossessionController {
             // Piglins/brutes are always passive — deal damage but never provoke
             if (isPiglinAlly(entity)) {
                 float damage = calculateDamage(sp);
-                livingTarget.damage(sp.getDamageSources().playerAttack(sp), damage);
+                livingTarget.damage(((net.minecraft.server.world.ServerWorld) livingTarget.getEntityWorld()), sp.getDamageSources().playerAttack(sp), damage);
                 LAST_HIT_TICK.put(sp.getUuid(), (long) sp.age);
                 ZombieAttackSyncNetworking.broadcastZombieAttacking(sp, true);
                 sp.swingHand(hand, true);
@@ -87,7 +87,7 @@ public final class PiglinPossessionController {
                 ZombieTargetingState.markProvoked(mob.getUuid(), sp.getUuid());
 
             float damage = calculateDamage(sp);
-            livingTarget.damage(sp.getDamageSources().playerAttack(sp), damage);
+            livingTarget.damage(((net.minecraft.server.world.ServerWorld) livingTarget.getEntityWorld()), sp.getDamageSources().playerAttack(sp), damage);
 
             LAST_HIT_TICK.put(sp.getUuid(), (long) sp.age);
             ZombieAttackSyncNetworking.broadcastZombieAttacking(sp, true);
@@ -108,8 +108,8 @@ public final class PiglinPossessionController {
             Entity attacker = source.getAttacker();
             if (attacker instanceof net.minecraft.entity.mob.SlimeEntity) return true;
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_PIGLIN_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_PIGLIN_HURT, 1.0f);
 
             ensureArrows(player);
 
@@ -129,7 +129,7 @@ public final class PiglinPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isPiglinPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_PIGLIN_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }
@@ -152,7 +152,7 @@ public final class PiglinPossessionController {
 
         // Ambient sound
         if (player.age % 120 == 0 && player.getRandom().nextFloat() < 0.35f) {
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_PIGLIN_AMBIENT, SoundCategory.PLAYERS, 1.0f, 1.0f);
         }
 
@@ -161,7 +161,7 @@ public final class PiglinPossessionController {
         if (!mainHand.isEmpty() && mainHand.isOf(Items.CROSSBOW)) {
             if (player.isUsingItem() && !net.minecraft.item.CrossbowItem.isCharged(mainHand)) {
                 if (player.age % 10 == 0) {
-                    player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                    player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                             SoundEvents.ITEM_CROSSBOW_LOADING_MIDDLE,
                             SoundCategory.PLAYERS, 0.8f, 1.0f);
                 }
@@ -174,7 +174,7 @@ public final class PiglinPossessionController {
 
     // ── Overworld conversion (piglin → zombified piglin) ──────────────────────
     private static void handleOverworldConversion(ServerPlayerEntity player) {
-        boolean inOverworld = player.getWorld().getRegistryKey() == World.OVERWORLD;
+        boolean inOverworld = player.getEntityWorld().getRegistryKey() == World.OVERWORLD;
         if (!inOverworld) {
             int prev = OverworldConversionTracker.getTicks(player.getUuid());
             OverworldConversionTracker.reset(player.getUuid());
@@ -195,7 +195,7 @@ public final class PiglinPossessionController {
             OverworldConversionTracker.reset(player.getUuid());
             WaterShakeNetworking.broadcast(player, false);
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_PIGLIN_CONVERTED_TO_ZOMBIFIED,
                     SoundCategory.HOSTILE, 1.0f, 1.0f);
 
@@ -207,11 +207,11 @@ public final class PiglinPossessionController {
 
     // ── Damage ────────────────────────────────────────────────────────────────
     static float calculateDamage(ServerPlayerEntity player) {
-        double attr = player.getAttributeValue(net.minecraft.entity.attribute.EntityAttributes.GENERIC_ATTACK_DAMAGE);
+        double attr = player.getAttributeValue(net.minecraft.entity.attribute.EntityAttributes.ATTACK_DAMAGE);
         ItemStack held = player.getMainHandStack();
         // If holding a golden sword, use custom piglin damage values
         if (held.isOf(Items.GOLDEN_SWORD)) {
-            return getPiglinSwordDamage(player.getServerWorld().getDifficulty());
+            return getPiglinSwordDamage(player.getEntityWorld().getDifficulty());
         }
         // If holding a better weapon (netherite, diamond, etc.), use vanilla weapon damage
         if (attr > 2.0) return (float) attr;
@@ -231,7 +231,7 @@ public final class PiglinPossessionController {
     // ── Rally nearby piglins and brutes ───────────────────────────────────────
     static void rallyNearbyPiglins(ServerPlayerEntity player, LivingEntity threat) {
         Box box = player.getBoundingBox().expand(40.0);
-        for (MobEntity mob : player.getServerWorld().getEntitiesByClass(
+        for (MobEntity mob : player.getEntityWorld().getEntitiesByClass(
                 MobEntity.class, box, m -> m.isAlive() && isPiglinAlly(m))) {
             // Only rally adult piglins and brutes
             if (mob instanceof PiglinEntity piglin && piglin.isBaby()) continue;
@@ -262,13 +262,13 @@ public final class PiglinPossessionController {
     private static void persistRally(ServerPlayerEntity player) {
         UUID attackerUuid = LAST_ATTACKER.get(player.getUuid());
         if (attackerUuid == null) return;
-        Entity e = player.getServerWorld().getEntity(attackerUuid);
+        Entity e = player.getEntityWorld().getEntity(attackerUuid);
         if (!(e instanceof LivingEntity attacker) || !attacker.isAlive()) {
             LAST_ATTACKER.remove(player.getUuid());
             return;
         }
         Box box = player.getBoundingBox().expand(40.0);
-        for (MobEntity ally : player.getServerWorld()
+        for (MobEntity ally : player.getEntityWorld()
                 .getEntitiesByClass(MobEntity.class, box, m -> isPiglinAlly(m) && m.isAlive())) {
             if (ally instanceof PiglinEntity piglin && piglin.isBaby()) continue;
             if (ally.getTarget() == null || !ally.getTarget().isAlive()) {
@@ -295,18 +295,18 @@ public final class PiglinPossessionController {
 
         // Golden sword (unbreakable)
         ItemStack sword = new ItemStack(Items.GOLDEN_SWORD);
-        sword.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+        sword.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
 
         // Crossbow (unbreakable) with Infinity
         ItemStack crossbow = new ItemStack(Items.CROSSBOW);
         try {
             crossbow.addEnchantment(
-                    player.getServerWorld().getRegistryManager()
-                            .get(RegistryKeys.ENCHANTMENT)
-                            .getEntry(Enchantments.INFINITY).orElseThrow(),
+                    player.getEntityWorld().getRegistryManager()
+                            .getOrThrow(RegistryKeys.ENCHANTMENT)
+                            .getOrThrow(Enchantments.INFINITY),
                     1);
         } catch (Exception ignored) {}
-        crossbow.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+        crossbow.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
 
         // Arrows
         ItemStack arrows = new ItemStack(Items.ARROW, 64);
@@ -336,7 +336,7 @@ public final class PiglinPossessionController {
         for (int i = 0; i < player.getInventory().size(); i++) {
             ItemStack s = player.getInventory().getStack(i);
             if (s.isOf(item) && !s.contains(DataComponentTypes.UNBREAKABLE))
-                s.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+                s.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
         }
     }
 
@@ -347,7 +347,8 @@ public final class PiglinPossessionController {
     }
 
     static void preventNaturalHealing(ServerPlayerEntity player) {
-        if (player.timeUntilRegen > 0) player.timeUntilRegen = 0;
+        // HungerManagerMixin already blocks passive healing for possessed players.
+        // Do not touch timeUntilRegen here: vanilla also uses it for hurt i-frames.
     }
 
     // ── Food helpers ──────────────────────────────────────────────────────────
@@ -386,7 +387,7 @@ public final class PiglinPossessionController {
             saved[i] = player.getEquippedStack(armorSlots[i]).copy();
             if (!mobArmor.isEmpty()) {
                 ItemStack armorCopy = mobArmor.copy();
-                armorCopy.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+                armorCopy.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
                 player.equipStack(armorSlots[i], armorCopy);
             }
         }
@@ -433,3 +434,11 @@ public final class PiglinPossessionController {
                 player.getInventory().setStack(i, ItemStack.EMPTY);
     }
 }
+
+
+
+
+
+
+
+

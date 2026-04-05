@@ -3,7 +3,7 @@ package net.sam.samrequiemmod.possession.piglin;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.UnbreakableComponent;
+import net.minecraft.util.Unit;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
@@ -46,7 +46,7 @@ public final class PiglinBrutePossessionController {
 
         // ── Attack: custom axe damage, arms raised, rally ─────────────────────
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isPiglinBrutePossessing(sp)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity livingTarget)) return ActionResult.PASS;
@@ -63,10 +63,10 @@ public final class PiglinBrutePossessionController {
                     case HARD   -> 19.0f;  // 9.5 hearts
                     default     -> 13.0f;  // 6.5 hearts
                 };
-                livingTarget.damage(sp.getDamageSources().playerAttack(sp), axeDmg);
+                livingTarget.damage(((net.minecraft.server.world.ServerWorld) livingTarget.getEntityWorld()), sp.getDamageSources().playerAttack(sp), axeDmg);
             } else {
                 float damage = calculateUnarmedDamage(sp);
-                livingTarget.damage(sp.getDamageSources().playerAttack(sp), damage);
+                livingTarget.damage(((net.minecraft.server.world.ServerWorld) livingTarget.getEntityWorld()), sp.getDamageSources().playerAttack(sp), damage);
             }
 
             // Piglins/brutes always passive — don't provoke
@@ -94,7 +94,7 @@ public final class PiglinBrutePossessionController {
             Entity attacker = source.getAttacker();
             if (attacker instanceof net.minecraft.entity.mob.SlimeEntity) return true;
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_PIGLIN_BRUTE_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
             ensureAxe(player);
@@ -115,7 +115,7 @@ public final class PiglinBrutePossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isPiglinBrutePossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_PIGLIN_BRUTE_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }
@@ -138,7 +138,7 @@ public final class PiglinBrutePossessionController {
 
         // Ambient sound
         if (player.age % 120 == 0 && player.getRandom().nextFloat() < 0.35f) {
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_PIGLIN_BRUTE_AMBIENT, SoundCategory.PLAYERS, 1.0f, 1.0f);
         }
 
@@ -148,7 +148,7 @@ public final class PiglinBrutePossessionController {
 
     // ── Overworld conversion ──────────────────────────────────────────────────
     private static void handleOverworldConversion(ServerPlayerEntity player) {
-        boolean inOverworld = player.getWorld().getRegistryKey() == World.OVERWORLD;
+        boolean inOverworld = player.getEntityWorld().getRegistryKey() == World.OVERWORLD;
         if (!inOverworld) {
             int prev = OverworldConversionTracker.getTicks(player.getUuid());
             OverworldConversionTracker.reset(player.getUuid());
@@ -165,7 +165,7 @@ public final class PiglinBrutePossessionController {
             OverworldConversionTracker.reset(player.getUuid());
             WaterShakeNetworking.broadcast(player, false);
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_PIGLIN_BRUTE_CONVERTED_TO_ZOMBIFIED,
                     SoundCategory.HOSTILE, 1.0f, 1.0f);
 
@@ -177,7 +177,7 @@ public final class PiglinBrutePossessionController {
 
     // ── Damage ────────────────────────────────────────────────────────────────
     private static float calculateUnarmedDamage(ServerPlayerEntity player) {
-        return switch (player.getServerWorld().getDifficulty()) {
+        return switch (player.getEntityWorld().getDifficulty()) {
             case EASY   -> 5.0f;   // 2.5 hearts
             case NORMAL -> 8.0f;   // 4 hearts
             case HARD   -> 12.0f;  // 6 hearts
@@ -199,13 +199,13 @@ public final class PiglinBrutePossessionController {
     private static void persistRally(ServerPlayerEntity player) {
         UUID attackerUuid = LAST_ATTACKER.get(player.getUuid());
         if (attackerUuid == null) return;
-        Entity e = player.getServerWorld().getEntity(attackerUuid);
+        Entity e = player.getEntityWorld().getEntity(attackerUuid);
         if (!(e instanceof LivingEntity attacker) || !attacker.isAlive()) {
             LAST_ATTACKER.remove(player.getUuid());
             return;
         }
         Box box = player.getBoundingBox().expand(40.0);
-        for (MobEntity ally : player.getServerWorld()
+        for (MobEntity ally : player.getEntityWorld()
                 .getEntitiesByClass(MobEntity.class, box, m -> PiglinPossessionController.isPiglinAlly(m) && m.isAlive())) {
             if (ally instanceof net.minecraft.entity.mob.PiglinEntity piglin && piglin.isBaby()) continue;
             if (ally.getTarget() == null || !ally.getTarget().isAlive()) {
@@ -229,7 +229,7 @@ public final class PiglinBrutePossessionController {
         }
 
         ItemStack axe = new ItemStack(Items.GOLDEN_AXE);
-        axe.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+        axe.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
         giveToSlot(player, axe, 0);
 
         ITEMS_GIVEN.add(player.getUuid());
@@ -273,3 +273,11 @@ public final class PiglinBrutePossessionController {
                 player.getInventory().setStack(i, ItemStack.EMPTY);
     }
 }
+
+
+
+
+
+
+
+

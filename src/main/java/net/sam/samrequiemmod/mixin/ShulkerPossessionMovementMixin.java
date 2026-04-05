@@ -22,3 +22,9 @@ public abstract class ShulkerPossessionMovementMixin {
         ci.cancel();
     }
 }
+
+
+
+
+
+

@@ -37,3 +37,8 @@ public final class EvokerClientState {
         return CASTING.getOrDefault(playerUuid, 0);
     }
 }
+
+
+
+
+

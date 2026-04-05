@@ -45,6 +45,7 @@ public final class GhastPossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isGhastPossessing(player)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
             if (source.equals(player.getDamageSources().onFire())
                     || source.equals(player.getDamageSources().inFire())
@@ -54,7 +55,7 @@ public final class GhastPossessionController {
                 return false;
             }
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_GHAST_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
             if (source.getAttacker() instanceof MobEntity mob) {
@@ -66,7 +67,7 @@ public final class GhastPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isGhastPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_GHAST_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }
@@ -77,7 +78,7 @@ public final class GhastPossessionController {
         if ((long) player.age < cooldown) return;
 
         Vec3d direction = player.getRotationVec(1.0f).normalize();
-        FireballEntity fireball = new FireballEntity(player.getWorld(), player, direction.multiply(0.1), 1);
+        FireballEntity fireball = new FireballEntity(player.getEntityWorld(), player, direction.multiply(0.1), 1);
         fireball.refreshPositionAndAngles(
                 player.getX() + direction.x * 2.0,
                 player.getEyeY(),
@@ -85,16 +86,16 @@ public final class GhastPossessionController {
                 player.getYaw(),
                 player.getPitch()
         );
-        player.getWorld().spawnEntity(fireball);
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().spawnEntity(fireball);
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_GHAST_WARN, SoundCategory.PLAYERS, 1.0f, 1.0f);
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_GHAST_SHOOT, SoundCategory.PLAYERS, 1.0f, 1.0f);
         FireMobNetworking.broadcastGhastAttack(player, SHOOTING_TICKS);
         COOLDOWN_UNTIL.put(player.getUuid(), (long) player.age + COOLDOWN_TICKS);
 
         if (targetUuid != null) {
-            Entity entity = player.getServerWorld().getEntity(targetUuid);
+            Entity entity = player.getEntityWorld().getEntity(targetUuid);
             if (entity instanceof MobEntity mob) {
                 ZombieTargetingState.markProvoked(mob.getUuid(), player.getUuid());
             }
@@ -124,7 +125,7 @@ public final class GhastPossessionController {
     private static void handleAmbientSound(ServerPlayerEntity player) {
         if (player.age % 120 != 0) return;
         if (player.getRandom().nextFloat() >= 0.45f) return;
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_GHAST_AMBIENT, SoundCategory.HOSTILE, 1.0f, 1.0f);
     }
 
@@ -164,3 +165,9 @@ public final class GhastPossessionController {
         COOLDOWN_UNTIL.remove(uuid);
     }
 }
+
+
+
+
+
+

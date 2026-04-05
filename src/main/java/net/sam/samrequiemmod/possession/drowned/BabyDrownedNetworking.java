@@ -37,9 +37,9 @@ public final class BabyDrownedNetworking {
     }
 
     public static void broadcast(ServerPlayerEntity player, boolean baby) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         var pkt = new Payload(player.getUuid(), baby);
-        for (ServerPlayerEntity r : player.getServer().getPlayerManager().getPlayerList())
+        for (ServerPlayerEntity r : player.getEntityWorld().getServer().getPlayerManager().getPlayerList())
             ServerPlayNetworking.send(r, pkt);
     }
 
@@ -52,3 +52,8 @@ public final class BabyDrownedNetworking {
         @Override public Id<? extends CustomPayload> getId() { return TYPE; }
     }
 }
+
+
+
+
+

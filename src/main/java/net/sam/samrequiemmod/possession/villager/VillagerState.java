@@ -34,3 +34,9 @@ public final class VillagerState {
         return SERVER_BABY.contains(uuid) || CLIENT_BABY.contains(uuid);
     }
 }
+
+
+
+
+
+

@@ -29,9 +29,9 @@ public final class VillagerNetworking {
     }
 
     public static void broadcastBaby(ServerPlayerEntity player, boolean baby) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         BabySyncPayload payload = new BabySyncPayload(player.getUuid(), baby);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
@@ -56,3 +56,9 @@ public final class VillagerNetworking {
         }
     }
 }
+
+
+
+
+
+

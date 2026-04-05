@@ -13,6 +13,7 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.rule.GameRules;
 import net.sam.samrequiemmod.possession.PossessionManager;
 import net.sam.samrequiemmod.possession.zombie.ZombieTargetingState;
 
@@ -62,7 +63,7 @@ public final class RavagerPossessionController {
 
         // ── Attack callback: intercept left-click for bite attack ─────────────
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isRavagerPossessing(sp)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity target)) return ActionResult.PASS;
@@ -86,8 +87,9 @@ public final class RavagerPossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isRavagerPossessing(player)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_RAVAGER_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
             Entity attacker = source.getAttacker();
@@ -100,9 +102,14 @@ public final class RavagerPossessionController {
             if (attacker instanceof LivingEntity livingAttacker) {
                 LAST_ATTACKER.put(player.getUuid(), livingAttacker.getUuid());
                 Box box = player.getBoundingBox().expand(40.0);
-                for (MobEntity mob : player.getServerWorld()
+                for (MobEntity mob : player.getEntityWorld()
                         .getEntitiesByClass(MobEntity.class, box,
                                 m -> isRavagerRallyMob(m) && m.isAlive())) {
+                    if (mob instanceof WitchEntity witch) {
+                        witch.setTarget(null);
+                        witch.getNavigation().stop();
+                        continue;
+                    }
                     mob.setTarget(livingAttacker);
                 }
             }
@@ -113,7 +120,7 @@ public final class RavagerPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isRavagerPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_RAVAGER_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }
@@ -121,26 +128,26 @@ public final class RavagerPossessionController {
     // ── Bite attack ──────────────────────────────────────────────────────────
     private static void performBite(ServerPlayerEntity player, LivingEntity target) {
         // Damage based on difficulty
-        float damage = switch (player.getServerWorld().getDifficulty()) {
+        float damage = switch (player.getEntityWorld().getDifficulty()) {
             case EASY -> 7.0f;      // 3.5 hearts
             case HARD -> 18.0f;     // 9 hearts
             default -> 12.0f;       // 6 hearts (Normal + Peaceful)
         };
 
-        target.damage(player.getDamageSources().playerAttack(player), damage);
+        target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), player.getDamageSources().playerAttack(player), damage);
 
         // Knockback: 2-4 blocks horizontal
-        Vec3d direction = target.getPos().subtract(player.getPos()).normalize();
+        Vec3d direction = target.getEntityPos().subtract(player.getEntityPos()).normalize();
         double knockbackStrength = 2.0 + player.getRandom().nextDouble() * 2.0; // 2-4
         target.setVelocity(
                 direction.x * knockbackStrength * 0.35,
                 0.25 + player.getRandom().nextDouble() * 0.12, // slight launcher effect
                 direction.z * knockbackStrength * 0.35
         );
-        target.velocityModified = true;
+        target.velocityDirty = true;
 
         // Play bite sound
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_RAVAGER_ATTACK, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
         // Sync bite animation to clients
@@ -168,7 +175,7 @@ public final class RavagerPossessionController {
 
     private static void performRoar(ServerPlayerEntity player) {
         // Play roar sound
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_RAVAGER_ROAR, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
         // Sync roar animation to clients
@@ -177,17 +184,17 @@ public final class RavagerPossessionController {
 
         // Damage all non-ally mobs within 4 blocks
         Box aoeBox = player.getBoundingBox().expand(4.0);
-        List<LivingEntity> targets = player.getServerWorld()
+        List<LivingEntity> targets = player.getEntityWorld()
                 .getEntitiesByClass(LivingEntity.class, aoeBox,
                         e -> e != player && e.isAlive() && !isRoarImmune(e)
                                 && e.squaredDistanceTo(player) <= 4.0 * 4.0);
 
         for (LivingEntity target : targets) {
             // 3 hearts = 6 damage
-            target.damage(player.getDamageSources().mobAttack(player), 6.0f);
+            target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), player.getDamageSources().mobAttack(player), 6.0f);
 
             // Knockback: 7 blocks horizontal
-            Vec3d direction = target.getPos().subtract(player.getPos()).normalize();
+            Vec3d direction = target.getEntityPos().subtract(player.getEntityPos()).normalize();
             double knockbackStrength = 7.0;
             // Vertical launch: 2-3 blocks
             double verticalLaunch = 0.6 + player.getRandom().nextDouble() * 0.3; // 2-3 blocks up
@@ -196,7 +203,7 @@ public final class RavagerPossessionController {
                     verticalLaunch,
                     direction.z * knockbackStrength * 0.4
             );
-            target.velocityModified = true;
+            target.velocityDirty = true;
 
             // Mark provoked
             if (target instanceof MobEntity mob)
@@ -222,7 +229,7 @@ public final class RavagerPossessionController {
 
         // Ambient sound
         if (player.age % 120 == 0 && player.getRandom().nextFloat() < 0.3f) {
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_RAVAGER_AMBIENT, SoundCategory.PLAYERS, 1.0f, 1.0f);
         }
 
@@ -241,15 +248,20 @@ public final class RavagerPossessionController {
     private static void persistRally(ServerPlayerEntity player) {
         UUID attackerUuid = LAST_ATTACKER.get(player.getUuid());
         if (attackerUuid == null) return;
-        Entity e = player.getServerWorld().getEntity(attackerUuid);
+        Entity e = player.getEntityWorld().getEntity(attackerUuid);
         if (!(e instanceof LivingEntity attacker) || !attacker.isAlive()) {
             LAST_ATTACKER.remove(player.getUuid());
             return;
         }
         Box box = player.getBoundingBox().expand(40.0);
-        for (MobEntity ally : player.getServerWorld()
+        for (MobEntity ally : player.getEntityWorld()
                 .getEntitiesByClass(MobEntity.class, box,
                         m -> isRavagerRallyMob(m) && m.isAlive())) {
+            if (ally instanceof WitchEntity witch) {
+                witch.setTarget(null);
+                witch.getNavigation().stop();
+                continue;
+            }
             if (ally.getTarget() == null || !ally.getTarget().isAlive())
                 ally.setTarget(attacker);
         }
@@ -257,7 +269,7 @@ public final class RavagerPossessionController {
 
     // ── Leaf breaking (matches vanilla RavagerEntity.tickMovement) ─────────
     private static void breakLeaves(ServerPlayerEntity player) {
-        if (!player.getWorld().getGameRules().getBoolean(net.minecraft.world.GameRules.DO_MOB_GRIEFING)) return;
+        if (!Boolean.TRUE.equals(player.getEntityWorld().getGameRules().getValue(GameRules.DO_MOB_GRIEFING))) return;
 
         // Use a wider box than the player's hitbox to match ravager's destructive path
         Box box = player.getBoundingBox().expand(0.6);
@@ -269,9 +281,9 @@ public final class RavagerPossessionController {
                 net.minecraft.util.math.MathHelper.floor(box.maxY),
                 net.minecraft.util.math.MathHelper.floor(box.maxZ)
         )) {
-            net.minecraft.block.BlockState blockState = player.getWorld().getBlockState(blockPos);
+            net.minecraft.block.BlockState blockState = player.getEntityWorld().getBlockState(blockPos);
             if (blockState.getBlock() instanceof net.minecraft.block.LeavesBlock) {
-                player.getWorld().breakBlock(blockPos, true, player);
+                player.getEntityWorld().breakBlock(blockPos, true, player);
             }
         }
     }
@@ -335,7 +347,7 @@ public final class RavagerPossessionController {
 
         // Find target entity within 4 blocks (extended reach)
         if (targetUuid == null) return;
-        Entity targetEntity = player.getServerWorld().getEntity(targetUuid);
+        Entity targetEntity = player.getEntityWorld().getEntity(targetUuid);
         if (!(targetEntity instanceof LivingEntity target)) return;
         if (!target.isAlive()) return;
 
@@ -350,3 +362,9 @@ public final class RavagerPossessionController {
             ZombieTargetingState.markProvoked(mob.getUuid(), player.getUuid());
     }
 }
+
+
+
+
+
+

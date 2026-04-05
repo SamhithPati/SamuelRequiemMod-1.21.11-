@@ -20,8 +20,15 @@ public abstract class SlimeEntityMixin {
     @Inject(method = "canAttack()Z", at = @At("HEAD"), cancellable = true)
     private void samrequiemmod$ignoresPossessedPlayer(CallbackInfoReturnable<Boolean> cir) {
         LivingEntity target = ((MobEntity)(Object)this).getTarget();
-        if (target instanceof ServerPlayerEntity player && PossessionManager.isPossessing(player)) {
+        if (target instanceof ServerPlayerEntity player
+                && PossessionManager.isPossessing(player)
+                && !net.sam.samrequiemmod.possession.iron_golem.IronGolemPossessionController.isIronGolemPossessing(player)) {
             cir.setReturnValue(false);
         }
     }
 }
+
+
+
+
+

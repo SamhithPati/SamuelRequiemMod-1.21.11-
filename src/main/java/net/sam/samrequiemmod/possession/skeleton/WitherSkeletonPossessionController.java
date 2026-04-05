@@ -3,7 +3,7 @@ package net.sam.samrequiemmod.possession.skeleton;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.UnbreakableComponent;
+import net.minecraft.util.Unit;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
@@ -22,7 +22,6 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.Difficulty;
 import net.sam.samrequiemmod.item.ModItems;
 import net.sam.samrequiemmod.possession.PossessionManager;
@@ -60,7 +59,7 @@ public final class WitherSkeletonPossessionController {
 
         // ── Attack: custom damage, wither effect, arms raised ──────────────────
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isWitherSkeletonPossessing(sp)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity livingTarget)) return ActionResult.PASS;
@@ -74,7 +73,9 @@ public final class WitherSkeletonPossessionController {
             // Calculate damage
             float damage = calculateDamage(sp);
             boolean damaged = livingTarget.damage(
-                    sp.getDamageSources().playerAttack(sp), damage);
+                    sp.getEntityWorld(),
+                    sp.getDamageSources().playerAttack(sp),
+                    damage);
 
             if (damaged) {
                 // Apply wither effect on hit (10 seconds)
@@ -116,8 +117,8 @@ public final class WitherSkeletonPossessionController {
             }
 
             // Play hurt sound
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_WITHER_SKELETON_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_WITHER_SKELETON_HURT, 1.0f);
 
             Entity attacker = source.getAttacker();
             if (attacker == null) return true;
@@ -131,7 +132,7 @@ public final class WitherSkeletonPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isWitherSkeletonPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_WITHER_SKELETON_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }
@@ -162,16 +163,16 @@ public final class WitherSkeletonPossessionController {
 
     // ── Damage calculation ────────────────────────────────────────────────────
     private static float calculateDamage(ServerPlayerEntity player) {
-        double playerAttackDamage = player.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE);
+        double playerAttackDamage = player.getAttributeValue(EntityAttributes.ATTACK_DAMAGE);
         boolean holdingWeapon = playerAttackDamage > 1.5;
         if (holdingWeapon) {
             // Weapon damage: base weapon damage + difficulty bonus
             // Stone sword base = 5 dmg. We want: Easy=5, Normal=8, Hard=12
             // So add difficulty bonus on top of weapon damage
-            float difficultyBonus = getDifficultyWeaponBonus(player.getServerWorld().getDifficulty());
+            float difficultyBonus = getDifficultyWeaponBonus(player.getEntityWorld().getDifficulty());
             return (float) playerAttackDamage + difficultyBonus;
         } else {
-            return getWitherSkeletonBaseDamage(player.getServerWorld().getDifficulty());
+            return getWitherSkeletonBaseDamage(player.getEntityWorld().getDifficulty());
         }
     }
 
@@ -222,7 +223,7 @@ public final class WitherSkeletonPossessionController {
 
         // Unbreakable stone sword
         ItemStack sword = new ItemStack(Items.STONE_SWORD);
-        sword.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+        sword.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
 
         giveToSlot(player, sword, 0);
         ITEMS_GIVEN.add(player.getUuid());
@@ -241,7 +242,7 @@ public final class WitherSkeletonPossessionController {
             if (player.getInventory().getStack(i).isOf(Items.STONE_SWORD)) { has = true; break; }
         if (!has) {
             ItemStack sword = new ItemStack(Items.STONE_SWORD);
-            sword.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+            sword.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
             player.getInventory().offerOrDrop(sword);
         }
     }
@@ -256,20 +257,14 @@ public final class WitherSkeletonPossessionController {
     private static void handleAmbientSound(ServerPlayerEntity player) {
         if (player.age % 160 != 0) return;
         if (player.getRandom().nextFloat() >= 0.45f) return;
-        player.getWorld().playSound(null,
+        player.getEntityWorld().playSound(null,
                 player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_WITHER_SKELETON_AMBIENT, SoundCategory.HOSTILE, 1.0f, 1.0f);
     }
 
     // ── Prevent swimming ──────────────────────────────────────────────────────
     private static void preventSwimming(ServerPlayerEntity player) {
-        if (!player.isTouchingWater()) return;
-        if (player.isSwimming()) player.setSwimming(false);
-        Vec3d vel = player.getVelocity();
-        // Clamp upward velocity — wither skeletons cannot rise in water
-        double vy = Math.min(vel.y, -0.04);
-        player.setVelocity(vel.x * 0.5, vy, vel.z * 0.5);
-        player.velocityModified = true;
+        net.sam.samrequiemmod.possession.NoSwimPossessionHelper.disableSwimmingPose(player);
     }
 
     // ── Prevent drowning ──────────────────────────────────────────────────────
@@ -314,12 +309,12 @@ public final class WitherSkeletonPossessionController {
     private static void aggroIronGolems(ServerPlayerEntity player) {
         if (player.age % 10 != 0) return;
         Box box = player.getBoundingBox().expand(24.0);
-        List<IronGolemEntity> golems = player.getWorld().getEntitiesByClass(
+        List<IronGolemEntity> golems = player.getEntityWorld().getEntitiesByClass(
                 IronGolemEntity.class, box, golem -> golem.isAlive());
         for (IronGolemEntity golem : golems) {
             if (golem.squaredDistanceTo(player) <= 24.0 * 24.0) {
                 golem.setTarget(player);
-                golem.setAngryAt(player.getUuid());
+                golem.setAngryAt(net.minecraft.entity.LazyEntityReference.of(player));
             }
         }
     }
@@ -328,7 +323,7 @@ public final class WitherSkeletonPossessionController {
     private static void aggroPiglins(ServerPlayerEntity player) {
         if (player.age % 10 != 0) return;
         Box box = player.getBoundingBox().expand(24.0);
-        for (MobEntity mob : player.getServerWorld()
+        for (MobEntity mob : player.getEntityWorld()
                 .getEntitiesByClass(MobEntity.class, box,
                         m -> (m instanceof PiglinEntity || m instanceof PiglinBruteEntity) && m.isAlive())) {
             if (mob.squaredDistanceTo(player) <= 24.0 * 24.0) {
@@ -368,3 +363,11 @@ public final class WitherSkeletonPossessionController {
         LAST_HIT_TICK.remove(playerUuid);
     }
 }
+
+
+
+
+
+
+
+

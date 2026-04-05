@@ -11,7 +11,7 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.projectile.thrown.PotionEntity;
+import net.minecraft.entity.projectile.thrown.SplashPotionEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.potion.Potions;
@@ -71,7 +71,7 @@ public final class WitchPossessionController {
 
         // ── Left-click: always cancel melee ────────────────────────────────────
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isWitchPossessing(sp)) return ActionResult.PASS;
             return ActionResult.FAIL;
@@ -81,8 +81,9 @@ public final class WitchPossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isWitchPossessing(player)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_WITCH_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
             // Start regen drink if not already drinking and doesn't have regen
@@ -99,9 +100,14 @@ public final class WitchPossessionController {
                     ZombieTargetingState.markProvoked(mob.getUuid(), player.getUuid());
                 if (attacker instanceof LivingEntity livingAttacker) {
                     Box box = player.getBoundingBox().expand(40.0);
-                    for (MobEntity mob : player.getServerWorld()
+                    for (MobEntity mob : player.getEntityWorld()
                             .getEntitiesByClass(MobEntity.class, box,
                                     m -> PillagerPossessionController.isRallyMob(m) && m.isAlive())) {
+                        if (mob instanceof net.minecraft.entity.mob.WitchEntity witch) {
+                            witch.setTarget(null);
+                            witch.getNavigation().stop();
+                            continue;
+                        }
                         mob.setTarget(livingAttacker);
                     }
                 }
@@ -113,7 +119,7 @@ public final class WitchPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isWitchPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_WITCH_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }
@@ -165,7 +171,7 @@ public final class WitchPossessionController {
 
         // Ambient sound
         if (player.age % 100 == 0 && player.getRandom().nextFloat() < 0.3f) {
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_WITCH_AMBIENT, SoundCategory.PLAYERS, 1.0f, 1.0f);
         }
 
@@ -185,7 +191,7 @@ public final class WitchPossessionController {
     private static void startDrinking(ServerPlayerEntity player, int drinkType) {
         DRINKING_UNTIL.put(player.getUuid(), (long) player.age + DRINK_DURATION);
         DRINKING_TYPE.put(player.getUuid(), drinkType);
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_WITCH_DRINK, SoundCategory.PLAYERS, 1.0f, 1.0f);
         WitchNetworking.broadcastDrinking(player, true);
     }
@@ -221,7 +227,7 @@ public final class WitchPossessionController {
         if ((long) player.age - lastThrow < 20) return;
 
         if (targetUuid == null) return;
-        Entity targetEntity = player.getServerWorld().getEntity(targetUuid);
+        Entity targetEntity = player.getEntityWorld().getEntity(targetUuid);
         if (!(targetEntity instanceof LivingEntity target)) return;
         if (!target.isAlive()) return;
 
@@ -232,47 +238,24 @@ public final class WitchPossessionController {
 
         boolean isAlly = PillagerPossessionController.isIllagerAlly(target);
 
-        if (isAlly) {
-            // Throw regen splash at allies (illagers & ravagers)
-            target.addStatusEffect(
-                    new StatusEffectInstance(StatusEffects.REGENERATION, 600, 0, false, true));
-            throwVisualPotion(player, target, Potions.REGENERATION);
-        } else {
-            // Choose offensive potion based on target health and distance
-            if (target.getHealth() < 8.0f) {
-                // Target below 4 hearts → Harming I
-                target.addStatusEffect(
-                        new StatusEffectInstance(StatusEffects.INSTANT_DAMAGE, 1, 0, false, true));
-                throwVisualPotion(player, target, Potions.HARMING);
-            } else if (dist < 3.0) {
-                // Under 3 blocks → Weakness (90 seconds)
-                target.addStatusEffect(
-                        new StatusEffectInstance(StatusEffects.WEAKNESS, 1800, 0, false, true));
-                throwVisualPotion(player, target, Potions.WEAKNESS);
-            } else if (dist < 8.0) {
-                // Under 8 blocks → Poison (90 seconds)
-                target.addStatusEffect(
-                        new StatusEffectInstance(StatusEffects.POISON, 1800, 0, false, true));
-                throwVisualPotion(player, target, Potions.POISON);
-            } else {
-                // 8+ blocks → Slowness (1 minute)
-                target.addStatusEffect(
-                        new StatusEffectInstance(StatusEffects.SLOWNESS, 1200, 0, false, true));
-                throwVisualPotion(player, target, Potions.SLOWNESS);
-            }
+        if (!isAlly) {
+            return;
         }
 
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        // Throw regen splash at allies only (illagers & ravagers)
+        throwVisualPotion(player, target, Potions.REGENERATION);
+
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_WITCH_THROW, SoundCategory.PLAYERS, 1.0f, 1.0f);
     }
 
     private static void throwVisualPotion(ServerPlayerEntity player, LivingEntity target,
                                           net.minecraft.registry.entry.RegistryEntry<net.minecraft.potion.Potion> potionType) {
-        ServerWorld world = player.getServerWorld();
+        ServerWorld world = player.getEntityWorld();
         ItemStack potionStack = new ItemStack(Items.SPLASH_POTION);
         potionStack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(potionType));
 
-        PotionEntity potionEntity = new PotionEntity(world, player);
+        SplashPotionEntity potionEntity = new SplashPotionEntity(world, player, potionStack);
         potionEntity.setItem(potionStack);
 
         double dx = target.getX() - player.getX();
@@ -289,15 +272,20 @@ public final class WitchPossessionController {
     private static void persistRally(ServerPlayerEntity player) {
         UUID attackerUuid = LAST_ATTACKER.get(player.getUuid());
         if (attackerUuid == null) return;
-        Entity e = player.getServerWorld().getEntity(attackerUuid);
+        Entity e = player.getEntityWorld().getEntity(attackerUuid);
         if (!(e instanceof LivingEntity attacker) || !attacker.isAlive()) {
             LAST_ATTACKER.remove(player.getUuid());
             return;
         }
         Box box = player.getBoundingBox().expand(40.0);
-        for (MobEntity ally : player.getServerWorld()
+        for (MobEntity ally : player.getEntityWorld()
                 .getEntitiesByClass(MobEntity.class, box,
                         m -> PillagerPossessionController.isRallyMob(m) && m.isAlive())) {
+            if (ally instanceof net.minecraft.entity.mob.WitchEntity witch) {
+                witch.setTarget(null);
+                witch.getNavigation().stop();
+                continue;
+            }
             if (ally.getTarget() == null || !ally.getTarget().isAlive())
                 ally.setTarget(attacker);
         }
@@ -351,3 +339,9 @@ public final class WitchPossessionController {
         LAST_ATTACKER.remove(uuid);
     }
 }
+
+
+
+
+
+

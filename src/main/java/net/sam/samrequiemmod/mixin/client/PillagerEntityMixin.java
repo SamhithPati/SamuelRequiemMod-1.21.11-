@@ -47,6 +47,14 @@ public abstract class PillagerEntityMixin implements CrossbowAnimationOverride {
         }
     }
 
+    @Inject(method = "getItemUseTime(F)F", at = @At("HEAD"), cancellable = true)
+    private void samrequiemmod$overrideGetItemUseTimeFloat(float tickDelta, CallbackInfoReturnable<Float> cir) {
+        if (!((Object) this instanceof PillagerEntity)) return;
+        if (samrequiemmod$overrideUseTimeElapsed >= 0) {
+            cir.setReturnValue((float) samrequiemmod$overrideUseTimeElapsed);
+        }
+    }
+
     @Inject(method = "getActiveItem", at = @At("HEAD"), cancellable = true)
     private void samrequiemmod$overrideGetActiveItem(CallbackInfoReturnable<ItemStack> cir) {
         if (!((Object) this instanceof PillagerEntity)) return;
@@ -55,3 +63,8 @@ public abstract class PillagerEntityMixin implements CrossbowAnimationOverride {
         }
     }
 }
+
+
+
+
+

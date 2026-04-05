@@ -4,3 +4,8 @@ package net.sam.samrequiemmod.client;
 public interface EvokerSpellSetter {
     void samrequiemmod$setSpellByOrdinal(int ordinal);
 }
+
+
+
+
+

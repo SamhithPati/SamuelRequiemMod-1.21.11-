@@ -37,9 +37,9 @@ public final class WitchNetworking {
     }
 
     public static void broadcastDrinking(ServerPlayerEntity player, boolean drinking) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         var pkt = new DrinkingSyncPayload(player.getUuid(), drinking);
-        for (ServerPlayerEntity r : player.getServer().getPlayerManager().getPlayerList())
+        for (ServerPlayerEntity r : player.getEntityWorld().getServer().getPlayerManager().getPlayerList())
             ServerPlayNetworking.send(r, pkt);
     }
 
@@ -80,3 +80,9 @@ public final class WitchNetworking {
         @Override public Id<? extends CustomPayload> getId() { return ID; }
     }
 }
+
+
+
+
+
+

@@ -29,9 +29,9 @@ public final class SlimeSizeNetworking {
     }
 
     public static void broadcast(ServerPlayerEntity player, int size) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         Payload payload = new Payload(player.getUuid(), size);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
@@ -56,3 +56,9 @@ public final class SlimeSizeNetworking {
         }
     }
 }
+
+
+
+
+
+

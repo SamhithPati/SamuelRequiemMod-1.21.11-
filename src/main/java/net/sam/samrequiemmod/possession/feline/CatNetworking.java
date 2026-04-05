@@ -29,9 +29,9 @@ public final class CatNetworking {
     }
 
     public static void broadcastVariant(ServerPlayerEntity player, String variantId) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         VariantSyncPayload payload = new VariantSyncPayload(player.getUuid(), variantId);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
@@ -56,3 +56,9 @@ public final class CatNetworking {
         }
     }
 }
+
+
+
+
+
+

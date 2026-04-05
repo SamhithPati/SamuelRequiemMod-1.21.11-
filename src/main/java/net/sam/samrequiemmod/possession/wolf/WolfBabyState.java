@@ -34,3 +34,9 @@ public final class WolfBabyState {
         return SERVER.contains(uuid) || CLIENT.contains(uuid);
     }
 }
+
+
+
+
+
+

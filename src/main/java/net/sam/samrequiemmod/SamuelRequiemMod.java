@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.sam.samrequiemmod.entity.CorruptedMerchantEntity;
 import net.sam.samrequiemmod.entity.ModEntities;
+import net.sam.samrequiemmod.entity.SoulBossEntity;
 import net.sam.samrequiemmod.item.ModItems;
 import net.sam.samrequiemmod.possession.PossessionCommand;
 import net.sam.samrequiemmod.possession.PossessionDimensionHelper;
@@ -57,6 +58,8 @@ public class SamuelRequiemMod implements ModInitializer {
 		net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.passive.BabyPassiveMobNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.passive.MooshroomNetworking.registerCommon();
+		net.sam.samrequiemmod.possession.passive.SheepAppearanceNetworking.registerCommon();
+		net.sam.samrequiemmod.possession.passive.PandaAppearanceNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.iron_golem.IronGolemNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.skeleton.WitherSkeletonAttackNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.skeleton.SpiderJumpNetworking.registerCommon();
@@ -69,6 +72,8 @@ public class SamuelRequiemMod implements ModInitializer {
 		net.sam.samrequiemmod.possession.hoglin.BabyHoglinNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.hoglin.HoglinAttackNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.guardian.GuardianNetworking.registerCommon();
+		net.sam.samrequiemmod.possession.warden.WardenNetworking.registerCommon();
+		net.sam.samrequiemmod.possession.breeze.BreezeNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.silverfish.SilverfishHideNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.firemob.FireMobNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.slime.SlimeSizeNetworking.registerCommon();
@@ -84,7 +89,10 @@ public class SamuelRequiemMod implements ModInitializer {
 				ModEntities.CORRUPTED_MERCHANT,
 				CorruptedMerchantEntity.createAttributes()
 		);
-
+		FabricDefaultAttributeRegistry.register(
+				ModEntities.SOUL_BOSS,
+				SoulBossEntity.createAttributes()
+		);
 		ModStructures.register();
 		net.sam.samrequiemmod.world.ModLootTableModifiers.register();
 		ShrineCommand.register();
@@ -104,6 +112,7 @@ public class SamuelRequiemMod implements ModInitializer {
 		net.sam.samrequiemmod.possession.illager.EvokerPossessionController.register();
 		net.sam.samrequiemmod.possession.illager.EvokerNetworking.registerServer();
 		net.sam.samrequiemmod.possession.zombie.ChickenJumpNetworking.registerServer();
+		net.sam.samrequiemmod.possession.zombie.ZombieHorseRidingHandler.register();
 		net.sam.samrequiemmod.possession.illager.RavagerJumpNetworking.registerServer();
 		net.sam.samrequiemmod.possession.illager.RavagerRidingHandler.register();
 		net.sam.samrequiemmod.possession.illager.CaptainNetworking.registerServer();
@@ -115,11 +124,15 @@ public class SamuelRequiemMod implements ModInitializer {
 		net.sam.samrequiemmod.possession.passive.PassiveMobPossessionController.register();
 		net.sam.samrequiemmod.possession.passive.MooshroomPossessionController.register();
 		net.sam.samrequiemmod.possession.passive.MooshroomNetworking.registerServer();
+		net.sam.samrequiemmod.possession.passive.SheepAppearanceNetworking.registerServer();
+		net.sam.samrequiemmod.possession.passive.PandaAppearanceNetworking.registerServer();
+		net.sam.samrequiemmod.possession.passive.PandaPossessionController.register();
 		net.sam.samrequiemmod.possession.iron_golem.IronGolemPossessionController.register();
 		net.sam.samrequiemmod.possession.iron_golem.IronGolemNetworking.registerServer();
 		net.sam.samrequiemmod.possession.skeleton.SkeletonPossessionController.register();
 		net.sam.samrequiemmod.possession.skeleton.WitherSkeletonPossessionController.register();
 		net.sam.samrequiemmod.possession.skeleton.SpiderJumpNetworking.registerServer();
+		net.sam.samrequiemmod.possession.skeleton.SkeletonHorseRidingHandler.register();
 		net.sam.samrequiemmod.possession.enderman.EndermanPossessionController.register();
 		net.sam.samrequiemmod.possession.enderman.EndermanNetworking.registerServer();
 		net.sam.samrequiemmod.possession.creeper.CreeperPossessionController.register();
@@ -131,6 +144,10 @@ public class SamuelRequiemMod implements ModInitializer {
 		net.sam.samrequiemmod.possession.hoglin.HoglinPossessionController.register();
 		net.sam.samrequiemmod.possession.guardian.GuardianPossessionController.register();
 		net.sam.samrequiemmod.possession.guardian.GuardianNetworking.registerServer();
+		net.sam.samrequiemmod.possession.warden.WardenPossessionController.register();
+		net.sam.samrequiemmod.possession.warden.WardenNetworking.registerServer();
+		net.sam.samrequiemmod.possession.breeze.BreezePossessionController.register();
+		net.sam.samrequiemmod.possession.breeze.BreezeNetworking.registerServer();
 		net.sam.samrequiemmod.possession.silverfish.SilverfishPossessionController.register();
 		net.sam.samrequiemmod.possession.silverfish.SilverfishHideNetworking.registerServer();
 		net.sam.samrequiemmod.possession.firemob.FireMobNetworking.registerServer();
@@ -154,62 +171,64 @@ public class SamuelRequiemMod implements ModInitializer {
 		net.sam.samrequiemmod.possession.piglin.BabyZombifiedPiglinPossessionController.register();
 		ZombieFoodUseHandler.register();
 
-		// When a possessed player dies, cancel the death and unpossess them instead
-		net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register(
+		// When a possessed player would actually die, cancel the death and unpossess them instead.
+		net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DEATH.register(
 				(entity, source, amount) -> {
 					if (!(entity instanceof net.minecraft.server.network.ServerPlayerEntity player)) return true;
 					if (!PossessionManager.isPossessing(player)) return true;
-					// If this damage would kill the player, cancel it and unpossess instead.
-					// Use getHealth() directly — vanilla already applies armor before calling ALLOW_DAMAGE
-					// for most damage sources, so comparing against health is sufficient.
-					float effectiveHealth = player.getHealth() + player.getAbsorptionAmount();
-					if (effectiveHealth - amount <= 0) {
-						if (net.sam.samrequiemmod.possession.slime.SlimePossessionController.handleLethalSplit(player)) {
-							return false;
-						}
+					if (net.sam.samrequiemmod.possession.slime.SlimePossessionController.handleLethalSplit(player)) {
+						return false;
+					}
+					if (net.sam.samrequiemmod.possession.villager.VillagerPossessionController.tryConvertToZombieVillager(player, source)) {
+						return false;
+					}
 						// Play death sound for illager possessions
 						if (net.sam.samrequiemmod.possession.illager.PillagerPossessionController.isPillagerPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_PILLAGER_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.illager.VindicatorPossessionController.isVindicatorPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_VINDICATOR_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.illager.EvokerPossessionController.isEvokerPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_EVOKER_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.illager.RavagerPossessionController.isRavagerPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_RAVAGER_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.illager.WitchPossessionController.isWitchPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_WITCH_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.iron_golem.IronGolemPossessionController.isIronGolemPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_IRON_GOLEM_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.skeleton.SkeletonPossessionController.isAnySkeletonPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-									net.minecraft.sound.SoundEvents.ENTITY_SKELETON_DEATH,
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+									net.sam.samrequiemmod.possession.skeleton.SkeletonPossessionController.getDeathSound(player),
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.skeleton.WitherSkeletonPossessionController.isWitherSkeletonPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_WITHER_SKELETON_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.enderman.EndermanPossessionController.isEndermanPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_ENDERMAN_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
+						} else if (net.sam.samrequiemmod.possession.breeze.BreezePossessionController.isBreezePossessing(player)) {
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+									net.minecraft.sound.SoundEvents.ENTITY_BREEZE_DEATH,
+									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.creeper.CreeperPossessionController.isCreeperPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_CREEPER_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.spider.SpiderPossessionController.isAnySpiderPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_SPIDER_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.hoglin.HoglinPossessionController.isAnyHoglinTypePossessing(player)) {
@@ -220,63 +239,72 @@ public class SamuelRequiemMod implements ModInitializer {
 							float pitch = net.sam.samrequiemmod.possession.hoglin.HoglinPossessionController.isBabyHoglinPossessing(player)
 									|| net.sam.samrequiemmod.possession.hoglin.HoglinPossessionController.isBabyZoglinPossessing(player)
 									? 1.35f : 1.0f;
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									deathSound, net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, pitch);
 						} else if (net.sam.samrequiemmod.possession.guardian.GuardianPossessionController.isAnyGuardianPossessing(player)) {
 							net.minecraft.sound.SoundEvent deathSound =
 									net.sam.samrequiemmod.possession.guardian.GuardianPossessionController.isElderGuardianPossessing(player)
 											? net.minecraft.sound.SoundEvents.ENTITY_ELDER_GUARDIAN_DEATH
 											: net.minecraft.sound.SoundEvents.ENTITY_GUARDIAN_DEATH;
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									deathSound, net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.silverfish.SilverfishPossessionController.isSilverfishPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_SILVERFISH_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.firemob.BlazePossessionController.isBlazePossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_BLAZE_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.firemob.GhastPossessionController.isGhastPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_GHAST_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.wolf.WolfPossessionController.isWolfPossessing(player)) {
 							float pitch = net.sam.samrequiemmod.possession.wolf.WolfPossessionController.isBabyWolfPossessing(player)
 									? 1.35f : 1.0f;
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-									net.minecraft.sound.SoundEvents.ENTITY_WOLF_DEATH,
+							var wolfDeathSound = net.sam.samrequiemmod.possession.wolf.WolfPossessionController.getDeathSound(player);
+							if (wolfDeathSound != null) {
+								player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+										wolfDeathSound,
+										net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, pitch);
+							}
+						} else if (net.sam.samrequiemmod.possession.passive.PandaPossessionController.isPandaPossessing(player)) {
+							float pitch = net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)
+									? 1.35f : 1.0f;
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+									net.minecraft.sound.SoundEvents.ENTITY_PANDA_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, pitch);
 						} else if (net.sam.samrequiemmod.possession.fox.FoxPossessionController.isFoxPossessing(player)) {
 							float pitch = net.sam.samrequiemmod.possession.fox.FoxPossessionController.isBabyFoxPossessing(player)
 									? 1.35f : 1.0f;
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_FOX_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, pitch);
 						} else if (net.sam.samrequiemmod.possession.feline.FelinePossessionController.isOcelotPossessing(player)) {
 							float pitch = net.sam.samrequiemmod.possession.feline.FelinePossessionController.isBabyOcelotPossessing(player)
 									? 1.35f : 1.0f;
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_OCELOT_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, pitch);
 						} else if (net.sam.samrequiemmod.possession.feline.FelinePossessionController.isCatPossessing(player)) {
 							float pitch = net.sam.samrequiemmod.possession.feline.FelinePossessionController.isBabyCatPossessing(player)
 									? 1.35f : 1.0f;
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_CAT_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, pitch);
 						} else if (net.sam.samrequiemmod.possession.vex.VexPossessionController.isVexPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_VEX_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.bat.BatPossessionController.isBatPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_BAT_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isVillagerPossessing(player)) {
 							float pitch = net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isBabyVillagerPossessing(player)
 									? 1.35f : 1.0f;
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_VILLAGER_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, pitch);
 						} else if (net.sam.samrequiemmod.possession.beast.BeastPossessionController.isTrackedType(PossessionManager.getPossessedType(player))) {
@@ -312,42 +340,42 @@ public class SamuelRequiemMod implements ModInitializer {
 											&& PossessionManager.getPossessedType(player) == net.minecraft.entity.EntityType.SKELETON_HORSE
 											? net.minecraft.sound.SoundEvents.ENTITY_SKELETON_HORSE_DEATH
 											: net.minecraft.sound.SoundEvents.ENTITY_HORSE_DEATH;
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									deathSound, net.minecraft.sound.SoundCategory.PLAYERS, 1.0f,
 									net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player) ? 1.35f : 1.0f);
 						} else if (net.sam.samrequiemmod.possession.aquatic.FishPossessionController.isFishPossessing(player)) {
 							net.minecraft.entity.EntityType<?> possType = PossessionManager.getPossessedType(player);
 							net.minecraft.sound.SoundEvent fishDeathSound = net.sam.samrequiemmod.possession.aquatic.FishPossessionController.getDeathSound(possType);
 							if (fishDeathSound != null) {
-								player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+								player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 										fishDeathSound, net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 							}
 						} else if (net.sam.samrequiemmod.possession.aquatic.SquidPossessionController.isSquidPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_SQUID_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.aquatic.DolphinPossessionController.isDolphinPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_DOLPHIN_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.piglin.PiglinPossessionController.isPiglinPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_PIGLIN_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.piglin.BabyPiglinPossessionController.isBabyPiglinPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_PIGLIN_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.5f);
 						} else if (net.sam.samrequiemmod.possession.piglin.PiglinBrutePossessionController.isPiglinBrutePossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_PIGLIN_BRUTE_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.piglin.ZombifiedPiglinPossessionController.isZombifiedPiglinPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_ZOMBIFIED_PIGLIN_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.piglin.BabyZombifiedPiglinPossessionController.isBabyZombifiedPiglinPossessing(player)) {
-							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_ZOMBIFIED_PIGLIN_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.6f);
 						} else {
@@ -355,12 +383,12 @@ public class SamuelRequiemMod implements ModInitializer {
 							net.minecraft.entity.EntityType<?> possType = PossessionManager.getPossessedType(player);
 							net.minecraft.sound.SoundEvent deathSound = net.sam.samrequiemmod.possession.passive.PassiveMobPossessionController.getDeathSound(possType);
 							if (deathSound != null) {
-								player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+								player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 										deathSound, net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 							}
 						}
 						PossessionManager.clearPossession(player);
-						player.getServer().execute(() -> {
+						player.getEntityWorld().getServer().execute(() -> {
 							if (player.getHealth() <= 0) player.setHealth(1.0f);
 							// 5 seconds = invisibility + invincibility effects
 							// (immunity window was already set synchronously in clearPossession)
@@ -370,23 +398,21 @@ public class SamuelRequiemMod implements ModInitializer {
 									net.minecraft.entity.effect.StatusEffects.RESISTANCE, 100, 4, false, false));
 							// Clear all mob targets on this player so they stop chasing immediately
 							net.minecraft.util.math.Box box = player.getBoundingBox().expand(48.0);
-							for (net.minecraft.entity.mob.MobEntity mob : player.getServerWorld()
+							for (net.minecraft.entity.mob.MobEntity mob : player.getEntityWorld()
 									.getEntitiesByClass(net.minecraft.entity.mob.MobEntity.class, box, m -> m.getTarget() == player)) {
 								mob.setTarget(null);
 							}
 						});
-						return false;
-					}
-					return true;
+					return false;
 				});
 
 		// Block all damage during post-possession immunity window.
-		// Only applies when NOT currently possessing — immunity is for after unpossession,
+		// Only applies when NOT currently possessing ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â immunity is for after unpossession,
 		// not during active possession (which would make the player invincible while possessed).
 		net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register(
 				(entity, source, amount) -> {
 					if (!(entity instanceof net.minecraft.server.network.ServerPlayerEntity player)) return true;
-					if (PossessionManager.isPossessing(player)) return true; // actively possessed — allow damage
+					if (PossessionManager.isPossessing(player)) return true; // actively possessed ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â allow damage
 					Long expiry = POST_POSSESSION_IMMUNITY.get(player.getUuid());
 					if (expiry == null) return true;
 					if ((long) player.age >= expiry) {
@@ -413,7 +439,9 @@ public class SamuelRequiemMod implements ModInitializer {
 				(entity, source, amount) -> {
 					if (!(entity instanceof net.minecraft.server.network.ServerPlayerEntity player)) return true;
 					if (!PossessionManager.isPossessing(player)) return true;
-					if (source.getAttacker() instanceof net.minecraft.entity.mob.SlimeEntity) return false;
+					if (source.getAttacker() instanceof net.minecraft.entity.mob.SlimeEntity) {
+						return net.sam.samrequiemmod.possession.iron_golem.IronGolemPossessionController.isIronGolemPossessing(player);
+					}
 					return true;
 				});
 
@@ -449,12 +477,33 @@ public class SamuelRequiemMod implements ModInitializer {
 					// Block fang damage to the ravager the evoker is currently riding
 					if (entity instanceof net.minecraft.entity.mob.RavagerEntity
 							&& owner.getVehicle() == entity) return false;
-					// Aggro non-ally mobs — mark them provoked and target the player
+					// Aggro non-ally mobs ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â mark them provoked and target the player
+					if (entity instanceof net.minecraft.entity.LivingEntity living) {
+						net.sam.samrequiemmod.possession.illager.EvokerPossessionController.onFangHit(owner, living);
+					}
 					if (entity instanceof net.minecraft.entity.mob.MobEntity mob) {
 						net.sam.samrequiemmod.possession.zombie.ZombieTargetingState.markProvoked(mob.getUuid(), owner.getUuid());
 						mob.setAttacker(owner);
 						if (mob.getTarget() == null) mob.setTarget(owner);
 					}
+					return true;
+				});
+
+		// Projectile hits from possessed players should provoke hostile/neutral mobs
+		// on any real hit, unless the struck mob is one of the possession's explicit
+		// ally/passive exceptions for that possession type.
+		net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register(
+				(entity, source, amount) -> {
+					if (!(entity instanceof net.minecraft.entity.mob.MobEntity mob)) return true;
+					if (!(source.getSource() instanceof net.minecraft.entity.projectile.ProjectileEntity)) return true;
+					net.minecraft.server.network.ServerPlayerEntity owner = resolveProjectileOwner(source);
+					if (owner == null) return true;
+					if (!PossessionManager.isPossessing(owner)) return true;
+					if (shouldSkipProjectileProvocation(owner, mob)) return true;
+
+					net.sam.samrequiemmod.possession.zombie.ZombieTargetingState.markProvoked(mob.getUuid(), owner.getUuid());
+					mob.setAttacker(owner);
+					mob.setTarget(owner);
 					return true;
 				});
 
@@ -492,6 +541,16 @@ public class SamuelRequiemMod implements ModInitializer {
 			}
 		});
 
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+			var disconnectingPlayer = handler.player;
+			if (PossessionManager.isPossessing(disconnectingPlayer)) {
+				PossessionManager.clearPossession(disconnectingPlayer);
+			} else {
+				PossessionManager.removePlayer(disconnectingPlayer);
+			}
+			POST_POSSESSION_IMMUNITY.remove(disconnectingPlayer.getUuid());
+		});
+
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
 			for (net.minecraft.server.world.ServerWorld world : server.getWorlds()) {
 				net.sam.samrequiemmod.world.SoulTraderShrine.tick(world);
@@ -508,7 +567,7 @@ public class SamuelRequiemMod implements ModInitializer {
 						// Every tick during immunity (and once at expiry):
 						// Aggressively wipe ALL player-related state from nearby mobs.
 						net.minecraft.util.math.Box clearBox = player.getBoundingBox().expand(64.0);
-						for (net.minecraft.entity.mob.MobEntity mob : player.getServerWorld()
+						for (net.minecraft.entity.mob.MobEntity mob : player.getEntityWorld()
 								.getEntitiesByClass(net.minecraft.entity.mob.MobEntity.class, clearBox, m -> m.isAlive())) {
 
 							boolean targetsPlayer  = mob.getTarget() == player;
@@ -524,7 +583,7 @@ public class SamuelRequiemMod implements ModInitializer {
 							mob.getNavigation().stop();
 							if (mob instanceof net.minecraft.entity.mob.Angerable angerable) {
 								angerable.setAngryAt(null);
-								angerable.setAngerTime(0);
+								angerable.stopAnger();
 							}
 							if (mob instanceof net.minecraft.entity.passive.IronGolemEntity golem) {
 								golem.setAttacking(false);
@@ -540,7 +599,7 @@ public class SamuelRequiemMod implements ModInitializer {
 						if (!player.getUuid().equals(targetPlayerUuid)) continue;
 						// Find this mob in world and clear its state
 						net.minecraft.util.math.Box searchBox = player.getBoundingBox().expand(128.0);
-						for (net.minecraft.entity.mob.MobEntity mob : player.getServerWorld()
+						for (net.minecraft.entity.mob.MobEntity mob : player.getEntityWorld()
 								.getEntitiesByClass(net.minecraft.entity.mob.MobEntity.class, searchBox,
 										m -> m.getUuid().equals(mobUuid) && m.isAlive())) {
 							if (mob.getTarget() == player || mob.getAttacker() == player
@@ -548,7 +607,7 @@ public class SamuelRequiemMod implements ModInitializer {
 								mob.setTarget(null);
 								mob.setAttacker(null);
 								mob.getNavigation().stop();
-								if (mob instanceof net.minecraft.entity.mob.Angerable a2) { a2.setAngryAt(null); a2.setAngerTime(0); }
+								if (mob instanceof net.minecraft.entity.mob.Angerable a2) { a2.setAngryAt(null); a2.stopAnger(); }
 								if (mob instanceof net.minecraft.entity.passive.IronGolemEntity g) g.setAttacking(false);
 							}
 						}
@@ -567,6 +626,7 @@ public class SamuelRequiemMod implements ModInitializer {
 						if (player.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.HUNGER)) {
 							player.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.HUNGER);
 						}
+						clearFireForFireproofPossessions(player);
 					}
 
 					// Tick zombie-specific behaviours (sounds, burn, villagers, golems)
@@ -579,10 +639,12 @@ public class SamuelRequiemMod implements ModInitializer {
 					net.sam.samrequiemmod.possession.zombie_villager.ZombieVillagerPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.passive.PassiveMobPossessionController.tick(player);
+					net.sam.samrequiemmod.possession.passive.PandaPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.iron_golem.IronGolemPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.skeleton.SkeletonPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.skeleton.WitherSkeletonPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.enderman.EndermanPossessionController.tick(player);
+					net.sam.samrequiemmod.possession.SnowGolemTargetingHelper.tickNearbySnowGolems(player);
 					net.sam.samrequiemmod.possession.creeper.CreeperPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.aquatic.FishPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.aquatic.SquidPossessionController.tick(player);
@@ -590,6 +652,8 @@ public class SamuelRequiemMod implements ModInitializer {
 					net.sam.samrequiemmod.possession.spider.SpiderPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.hoglin.HoglinPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.guardian.GuardianPossessionController.tick(player);
+					net.sam.samrequiemmod.possession.warden.WardenPossessionController.tick(player);
+					net.sam.samrequiemmod.possession.breeze.BreezePossessionController.tick(player);
 					net.sam.samrequiemmod.possession.silverfish.SilverfishPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.firemob.BlazePossessionController.tick(player);
 					net.sam.samrequiemmod.possession.firemob.GhastPossessionController.tick(player);
@@ -607,8 +671,116 @@ public class SamuelRequiemMod implements ModInitializer {
 					net.sam.samrequiemmod.possession.piglin.ZombifiedPiglinPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.piglin.BabyZombifiedPiglinPossessionController.tick(player);
 					ZombieFoodUseHandler.tick(player);
+
+					if (net.sam.samrequiemmod.possession.NoSwimPossessionHelper.shouldForceSink(player)) {
+						net.sam.samrequiemmod.possession.NoSwimPossessionHelper.disableSwimmingPose(player);
+					}
 				}
 			}
 		});
 	}
+
+	private static boolean shouldSkipProjectileProvocation(
+			net.minecraft.server.network.ServerPlayerEntity owner,
+			net.minecraft.entity.mob.MobEntity mob
+	) {
+		if (net.sam.samrequiemmod.possession.illager.PillagerPossessionController.isPillagerPossessing(owner)
+				|| net.sam.samrequiemmod.possession.illager.VindicatorPossessionController.isVindicatorPossessing(owner)
+				|| net.sam.samrequiemmod.possession.illager.EvokerPossessionController.isEvokerPossessing(owner)
+				|| net.sam.samrequiemmod.possession.illager.RavagerPossessionController.isRavagerPossessing(owner)
+				|| net.sam.samrequiemmod.possession.illager.WitchPossessionController.isWitchPossessing(owner)) {
+			return net.sam.samrequiemmod.possession.illager.PillagerPossessionController.isIllagerAlly(mob)
+					|| net.sam.samrequiemmod.possession.illager.RavagerPossessionController.isRavagerAlly(mob);
+		}
+		if (net.sam.samrequiemmod.possession.piglin.PiglinPossessionController.isAnyPiglinPossessing(owner)
+				|| net.sam.samrequiemmod.possession.piglin.BabyPiglinPossessionController.isBabyPiglinPossessing(owner)
+				|| net.sam.samrequiemmod.possession.piglin.PiglinBrutePossessionController.isPiglinBrutePossessing(owner)) {
+			return net.sam.samrequiemmod.possession.piglin.PiglinPossessionController.isPiglinAlly(mob);
+		}
+		if (net.sam.samrequiemmod.possession.piglin.ZombifiedPiglinPossessionController.isAnyZombifiedPiglinPossessing(owner)) {
+			return mob instanceof net.minecraft.entity.mob.ZombifiedPiglinEntity;
+		}
+		if (net.sam.samrequiemmod.possession.hoglin.HoglinPossessionController.isAnyHoglinTypePossessing(owner)) {
+			return net.sam.samrequiemmod.possession.hoglin.HoglinPossessionController.isHoglinAlly(mob)
+					|| net.sam.samrequiemmod.possession.hoglin.HoglinPossessionController.isZoglinAlly(mob);
+		}
+		if (net.sam.samrequiemmod.possession.guardian.GuardianPossessionController.isAnyGuardianPossessing(owner)) {
+			return net.sam.samrequiemmod.possession.guardian.GuardianPossessionController.isGuardianAlly(mob);
+		}
+		if (net.sam.samrequiemmod.possession.silverfish.SilverfishPossessionController.isSilverfishPossessing(owner)) {
+			return net.sam.samrequiemmod.possession.silverfish.SilverfishPossessionController.isSilverfishAlly(mob);
+		}
+		if (net.sam.samrequiemmod.possession.firemob.BlazePossessionController.isBlazePossessing(owner)) {
+			return net.sam.samrequiemmod.possession.firemob.BlazePossessionController.isBlazeAlly(mob);
+		}
+		if (net.sam.samrequiemmod.possession.wolf.WolfPossessionController.isWolfPossessing(owner)) {
+			return net.sam.samrequiemmod.possession.wolf.WolfPossessionController.isWolfAlly(mob)
+					|| mob instanceof net.minecraft.entity.mob.AbstractSkeletonEntity
+					|| mob.getType() == net.minecraft.entity.EntityType.PARCHED;
+		}
+		if (net.sam.samrequiemmod.possession.feline.FelinePossessionController.isAnyFelinePossessing(owner)) {
+			return mob instanceof net.minecraft.entity.mob.CreeperEntity;
+		}
+		if (net.sam.samrequiemmod.possession.vex.VexPossessionController.isVexPossessing(owner)) {
+			return net.sam.samrequiemmod.possession.vex.VexPossessionController.isVexAlly(mob);
+		}
+		if (net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isVillagerPossessing(owner)) {
+			return mob instanceof net.minecraft.entity.passive.IronGolemEntity;
+		}
+		if (net.sam.samrequiemmod.possession.beast.BeastPossessionController.isTrackedType(
+				net.sam.samrequiemmod.possession.PossessionManager.getPossessedType(owner))) {
+			var type = net.sam.samrequiemmod.possession.PossessionManager.getPossessedType(owner);
+			if (type == net.minecraft.entity.EntityType.POLAR_BEAR) {
+				return net.sam.samrequiemmod.possession.beast.BeastPossessionController.isPolarBearAlly(mob);
+			}
+			if (type == net.minecraft.entity.EntityType.BEE) {
+				return net.sam.samrequiemmod.possession.beast.BeastPossessionController.isBeeAlly(mob);
+			}
+		}
+		if (net.sam.samrequiemmod.possession.slime.SlimePossessionController.isAnySlimePossessing(owner)) {
+			return net.sam.samrequiemmod.possession.slime.SlimePossessionController.isSlimeAlly(mob);
+		}
+		if (net.sam.samrequiemmod.possession.iron_golem.IronGolemPossessionController.isIronGolemPossessing(owner)) {
+			return mob instanceof net.minecraft.entity.passive.IronGolemEntity;
+		}
+		return false;
+	}
+
+	private static net.minecraft.server.network.ServerPlayerEntity resolveProjectileOwner(
+			net.minecraft.entity.damage.DamageSource source
+	) {
+		if (source.getAttacker() instanceof net.minecraft.server.network.ServerPlayerEntity owner) {
+			return owner;
+		}
+		if (source.getSource() instanceof net.minecraft.entity.projectile.ProjectileEntity projectile
+				&& projectile.getOwner() instanceof net.minecraft.server.network.ServerPlayerEntity owner) {
+			return owner;
+		}
+		return null;
+	}
+
+	private static void clearFireForFireproofPossessions(net.minecraft.server.network.ServerPlayerEntity player) {
+		boolean fireproof =
+				net.sam.samrequiemmod.possession.firemob.BlazePossessionController.isBlazePossessing(player)
+						|| net.sam.samrequiemmod.possession.firemob.GhastPossessionController.isGhastPossessing(player)
+						|| net.sam.samrequiemmod.possession.skeleton.WitherSkeletonPossessionController.isWitherSkeletonPossessing(player)
+						|| net.sam.samrequiemmod.possession.warden.WardenPossessionController.isWardenPossessing(player)
+						|| net.sam.samrequiemmod.possession.piglin.PiglinPossessionController.isAnyPiglinPossessing(player)
+						|| net.sam.samrequiemmod.possession.piglin.PiglinBrutePossessionController.isPiglinBrutePossessing(player)
+						|| net.sam.samrequiemmod.possession.piglin.ZombifiedPiglinPossessionController.isAnyZombifiedPiglinPossessing(player)
+						|| net.sam.samrequiemmod.possession.slime.SlimePossessionController.isMagmaCubePossessing(player)
+						|| net.sam.samrequiemmod.possession.beast.BeastPossessionController.isStriderPossessing(player);
+		if (!fireproof || !player.isOnFire()) return;
+
+		player.setOnFire(false);
+		player.setFireTicks(0);
+		player.extinguish();
+	}
 }
+
+
+
+
+
+
+

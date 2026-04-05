@@ -80,6 +80,10 @@ public final class PossessionProfiles {
             0.2f, 0.35f, 0.28f, -16.0, 0.0
     );
 
+    public static final PossessionProfile BABY_PANDA_PROFILE = new PossessionProfile(
+            0.65f, 0.625f, 0.52f, 0.0, -0.02
+    );
+
     public static final PossessionProfile BABY_HOGLIN_PROFILE = new PossessionProfile(
             0.7f, 0.7f, 0.63f, 20.0f, 0.0f
     );
@@ -264,6 +268,10 @@ public final class PossessionProfiles {
             0.5f, 0.9f, 0.5f, -14.0f, 0.0f
     );
 
+    public static final PossessionProfile PANDA_PROFILE = new PossessionProfile(
+            1.3f, 1.25f, 1.05f, 0.0f, -0.02f
+    );
+
     public static final PossessionProfile PILLAGER_PROFILE = new PossessionProfile(
             0.6f, 1.8f, 1.62f, 4.0f, 0.0f); // +4 HP on top of player base 20 = 24 HP = 12 hearts
 
@@ -291,11 +299,20 @@ public final class PossessionProfiles {
     public static final PossessionProfile STRAY_PROFILE = new PossessionProfile(
             0.6f, 1.99f, 1.74f, 0.0f, -0.02f); // 10 hearts, same as skeleton
 
+    public static final PossessionProfile PARCHED_PROFILE = new PossessionProfile(
+            0.6f, 1.99f, 1.74f, 0.0f, -0.02f); // 10 hearts, same as skeleton
+
     public static final PossessionProfile WITHER_SKELETON_PROFILE = new PossessionProfile(
             0.6f, 2.4f, 2.1f, 0.0f, -0.02f); // 10 hearts, taller camera height
 
     public static final PossessionProfile ENDERMAN_PROFILE = new PossessionProfile(
             0.6f, 2.9f, 2.55f, 20.0f, 0.0f); // 20 hearts (20+20=40 HP), same speed as pillager/vindicator
+
+    public static final PossessionProfile WARDEN_PROFILE = new PossessionProfile(
+            0.9f, 2.9f, 2.65f, 480.0f, 0.0f);
+
+    public static final PossessionProfile BREEZE_PROFILE = new PossessionProfile(
+            0.6f, 1.77f, 1.55f, -4.0f, 0.04f);
 
     // 🐟 Cod — 1.5 hearts (3 HP), greatly reduced land speed
     public static final PossessionProfile COD_PROFILE = new PossessionProfile(
@@ -373,6 +390,9 @@ public final class PossessionProfiles {
         // ❄ Stray profile
         register(EntityType.STRAY, STRAY_PROFILE);
 
+        // ☀ Parched profile
+        register(EntityType.PARCHED, PARCHED_PROFILE);
+
         // 🖤 Wither Skeleton profile
         register(EntityType.WITHER_SKELETON, WITHER_SKELETON_PROFILE);
 
@@ -405,6 +425,12 @@ public final class PossessionProfiles {
 
         // 👁 Enderman — 20 hearts (40 HP), same speed as pillager/vindicator
         register(EntityType.ENDERMAN, ENDERMAN_PROFILE);
+
+        // Warden — 250 hearts (500 HP), same speed as pillager
+        register(EntityType.WARDEN, WARDEN_PROFILE);
+
+        // Breeze — vanilla 8 hearts (16 HP), same speed as pillager
+        register(EntityType.BREEZE, BREEZE_PROFILE);
 
         // 💥 Creeper — 10 hearts (20 HP), same speed as skeleton
         register(EntityType.CREEPER, new PossessionProfile(
@@ -483,6 +509,7 @@ public final class PossessionProfiles {
         register(EntityType.VILLAGER, VILLAGER_PROFILE);
         register(EntityType.BEE, BEE_PROFILE);
         register(EntityType.PARROT, PARROT_PROFILE);
+        register(EntityType.PANDA, PANDA_PROFILE);
 
         // 🐄 Cow — 5 hearts (10 HP), slightly slower than illagers
         register(EntityType.COW, new PossessionProfile(
@@ -528,3 +555,9 @@ public final class PossessionProfiles {
         return PROFILES.get(type);
     }
 }
+
+
+
+
+
+

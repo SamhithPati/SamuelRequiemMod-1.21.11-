@@ -44,9 +44,9 @@ public final class BabyPassiveMobNetworking {
     }
 
     public static void broadcast(ServerPlayerEntity player, boolean isBaby) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         var pkt = new BabyPassiveMobPayload(player.getUuid(), isBaby);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, pkt);
         }
     }
@@ -66,3 +66,9 @@ public final class BabyPassiveMobNetworking {
         @Override public Id<? extends CustomPayload> getId() { return ID; }
     }
 }
+
+
+
+
+
+

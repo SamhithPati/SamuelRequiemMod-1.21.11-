@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Makes iron golems actively hunt pillager-possessed players.
+ * Makes iron golems actively hunt possession types that should stay hostile to them.
  * targetSelector is exposed via the access widener so no @Shadow needed.
  */
 @Mixin(IronGolemEntity.class)
@@ -20,13 +20,13 @@ public abstract class IronGolemEntityMixin {
     private void samrequiemmod$addTargetPillagerPlayerGoal(CallbackInfo ci) {
         IronGolemEntity self = (IronGolemEntity) (Object) this;
 
-        self.targetSelector.add(3, new ActiveTargetGoal<>(
+        self.targetSelector.add(3, new ActiveTargetGoal<PlayerEntity>(
                 self,
                 PlayerEntity.class,
                 10,
                 true,
                 false,
-                entity -> entity instanceof PlayerEntity player
+                (target, world) -> target instanceof PlayerEntity player
                         && !net.sam.samrequiemmod.possession.iron_golem.IronGolemPossessionController.isIronGolemPossessing(player)
                         && (PillagerPossessionController.isPillagerPossessing(player)
                         || net.sam.samrequiemmod.possession.illager.VindicatorPossessionController.isVindicatorPossessing(player)
@@ -37,7 +37,14 @@ public abstract class IronGolemEntityMixin {
                         || net.sam.samrequiemmod.possession.piglin.PiglinPossessionController.isAnyPiglinPossessing(player)
                         || net.sam.samrequiemmod.possession.piglin.BabyPiglinPossessionController.isBabyPiglinPossessing(player)
                         || net.sam.samrequiemmod.possession.piglin.PiglinBrutePossessionController.isPiglinBrutePossessing(player)
-                        || net.sam.samrequiemmod.possession.piglin.ZombifiedPiglinPossessionController.isAnyZombifiedPiglinPossessing(player))
+                        || net.sam.samrequiemmod.possession.piglin.ZombifiedPiglinPossessionController.isAnyZombifiedPiglinPossessing(player)
+                        || net.sam.samrequiemmod.possession.spider.SpiderPossessionController.isAnySpiderPossessing(player))
+                        
         ));
     }
 }
+
+
+
+
+

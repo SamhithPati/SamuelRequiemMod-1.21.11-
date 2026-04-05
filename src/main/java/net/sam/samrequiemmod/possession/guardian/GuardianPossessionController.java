@@ -62,15 +62,16 @@ public final class GuardianPossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isAnyGuardianPossessing(player)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     getHurtSound(player), SoundCategory.PLAYERS, 1.0f, 1.0f);
 
             if (source.getAttacker() instanceof LivingEntity attacker) {
                 if (attacker instanceof MobEntity mob && !isGuardianAlly(attacker)) {
                     ZombieTargetingState.markProvoked(mob.getUuid(), player.getUuid());
                 }
-                attacker.damage(player.getDamageSources().thorns(player), getRetaliationDamage(player));
+                attacker.damage(((net.minecraft.server.world.ServerWorld) attacker.getEntityWorld()), player.getDamageSources().thorns(player), getRetaliationDamage(player));
             }
             return true;
         });
@@ -78,7 +79,7 @@ public final class GuardianPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isAnyGuardianPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     getDeathSound(player), SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }
@@ -91,14 +92,14 @@ public final class GuardianPossessionController {
         long cooldownUntil = COOLDOWNS.getOrDefault(player.getUuid(), -1L);
         if ((long) player.age < cooldownUntil) return;
 
-        Entity entity = player.getServerWorld().getEntity(targetUuid);
+        Entity entity = player.getEntityWorld().getEntity(targetUuid);
         if (!(entity instanceof LivingEntity target) || !target.isAlive()) return;
         if (target.squaredDistanceTo(player) > 20.0 * 20.0) return;
 
         int warmup = isElderGuardianPossessing(player) ? ELDER_WARMUP : GUARDIAN_WARMUP;
         ACTIVE_BEAMS.put(player.getUuid(), new BeamState(targetUuid, player.age, warmup));
         GuardianNetworking.broadcastBeam(player, targetUuid, warmup);
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_GUARDIAN_ATTACK, SoundCategory.PLAYERS, 1.0f, 1.0f);
     }
 
@@ -120,7 +121,7 @@ public final class GuardianPossessionController {
         BeamState state = ACTIVE_BEAMS.get(player.getUuid());
         if (state == null) return;
 
-        Entity entity = player.getServerWorld().getEntity(state.targetUuid());
+        Entity entity = player.getEntityWorld().getEntity(state.targetUuid());
         if (!(entity instanceof LivingEntity target) || !target.isAlive() || target.squaredDistanceTo(player) > 20.0 * 20.0) {
             ACTIVE_BEAMS.remove(player.getUuid());
             GuardianNetworking.broadcastBeam(player, null, 0);
@@ -129,8 +130,8 @@ public final class GuardianPossessionController {
 
         if (player.age - state.startedTick() < state.warmupTicks()) return;
 
-        float damage = getBeamDamage(player.getServerWorld().getDifficulty(), isElderGuardianPossessing(player));
-        target.damage(player.getDamageSources().magic(), damage);
+        float damage = getBeamDamage(player.getEntityWorld().getDifficulty(), isElderGuardianPossessing(player));
+        target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), player.getDamageSources().magic(), damage);
         if (target instanceof MobEntity mob && !isGuardianAlly(target)) {
             ZombieTargetingState.markProvoked(mob.getUuid(), player.getUuid());
         }
@@ -147,7 +148,7 @@ public final class GuardianPossessionController {
 
         LivingEntity nearest = null;
         double nearestDist = 50.0 * 50.0;
-        for (LivingEntity entity : player.getServerWorld().getEntitiesByClass(LivingEntity.class,
+        for (LivingEntity entity : player.getEntityWorld().getEntitiesByClass(LivingEntity.class,
                 player.getBoundingBox().expand(50.0), e -> e.isAlive() && e != player && !isGuardianAlly(e))) {
             double d = entity.squaredDistanceTo(player);
             if (d < nearestDist) {
@@ -158,7 +159,7 @@ public final class GuardianPossessionController {
 
         if (nearest == null) return;
         nearest.addStatusEffect(new StatusEffectInstance(StatusEffects.MINING_FATIGUE, 6000, 2, false, true));
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_ELDER_GUARDIAN_CURSE, SoundCategory.PLAYERS, 1.0f, 1.0f);
         LAST_FATIGUE_PULSE.put(player.getUuid(), (long) player.age);
     }
@@ -196,15 +197,15 @@ public final class GuardianPossessionController {
         double sideX = (player.getRandom().nextDouble() - 0.5) * 0.35;
         double sideZ = (player.getRandom().nextDouble() - 0.5) * 0.35;
         player.setVelocity(sideX, hopY, sideZ);
-        player.velocityModified = true;
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.velocityDirty = true;
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 getFlopSound(player), SoundCategory.PLAYERS, 0.6f, 1.0f);
     }
 
     private static void handleAmbientSound(ServerPlayerEntity player) {
         if (player.age % 100 != 0) return;
         if (player.getRandom().nextFloat() >= 0.55f) return;
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 getAmbientSound(player), SoundCategory.HOSTILE, 1.0f, 1.0f);
     }
 
@@ -213,16 +214,16 @@ public final class GuardianPossessionController {
         if (player.age % 16 != 0) return;
         Vec3d velocity = player.getVelocity();
         if (velocity.horizontalLengthSquared() < 0.0025 && Math.abs(velocity.y) < 0.02) return;
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 getSwimSound(player), SoundCategory.PLAYERS, 0.45f, 1.0f);
     }
 
     private static void aggroIronGolems(ServerPlayerEntity player) {
         if (player.age % 10 != 0) return;
         Box box = player.getBoundingBox().expand(24.0);
-        for (IronGolemEntity golem : player.getWorld().getEntitiesByClass(IronGolemEntity.class, box, IronGolemEntity::isAlive)) {
+        for (IronGolemEntity golem : player.getEntityWorld().getEntitiesByClass(IronGolemEntity.class, box, IronGolemEntity::isAlive)) {
             golem.setTarget(player);
-            golem.setAngryAt(player.getUuid());
+            golem.setAngryAt(net.minecraft.entity.LazyEntityReference.of(player));
         }
     }
 
@@ -319,3 +320,9 @@ public final class GuardianPossessionController {
 
     private record BeamState(UUID targetUuid, int startedTick, int warmupTicks) {}
 }
+
+
+
+
+
+

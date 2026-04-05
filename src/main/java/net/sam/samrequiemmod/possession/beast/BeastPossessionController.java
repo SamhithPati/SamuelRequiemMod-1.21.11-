@@ -131,7 +131,7 @@ public final class BeastPossessionController {
 
     public static void register() {
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity serverPlayer)) return ActionResult.PASS;
             if (player.getMainHandStack().isOf(ModItems.POSSESSION_RELIC)) return ActionResult.PASS;
 
@@ -163,10 +163,10 @@ public final class BeastPossessionController {
             }
 
             if (isEndermitePossessing(serverPlayer) && entity instanceof LivingEntity target) {
-                target.damage(serverPlayer.getDamageSources().playerAttack(serverPlayer), getEndermiteDamage(serverPlayer.getWorld().getDifficulty()));
+                target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), serverPlayer.getDamageSources().playerAttack(serverPlayer), getEndermiteDamage(serverPlayer.getEntityWorld().getDifficulty()));
                 markProvoked(target, serverPlayer);
                 serverPlayer.swingHand(hand, true);
-                serverPlayer.getWorld().playSound(null, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
+                serverPlayer.getEntityWorld().playSound(null, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
                         SoundEvents.ENTITY_ENDERMITE_HURT, SoundCategory.PLAYERS, 0.8f, 1.2f);
                 return ActionResult.SUCCESS;
             }
@@ -177,35 +177,34 @@ public final class BeastPossessionController {
             }
 
             if (isPolarBearPossessing(serverPlayer) && entity instanceof LivingEntity target) {
-                target.damage(serverPlayer.getDamageSources().playerAttack(serverPlayer), getPolarDamage(serverPlayer.getWorld().getDifficulty()));
-                Vec3d knock = target.getPos().subtract(serverPlayer.getPos()).normalize().multiply(0.75);
+                target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), serverPlayer.getDamageSources().playerAttack(serverPlayer), getPolarDamage(serverPlayer.getEntityWorld().getDifficulty()));
+                Vec3d knock = target.getEntityPos().subtract(serverPlayer.getEntityPos()).normalize().multiply(0.75);
                 target.addVelocity(knock.x, 0.12, knock.z);
-                target.velocityModified = true;
+                target.velocityDirty = true;
                 markProvoked(target, serverPlayer);
                 serverPlayer.swingHand(hand, true);
                 net.sam.samrequiemmod.possession.beast.BeastAttackNetworking.broadcastPolarAttack(serverPlayer);
-                serverPlayer.getWorld().playSound(null, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
+                serverPlayer.getEntityWorld().playSound(null, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
                         SoundEvents.ENTITY_POLAR_BEAR_WARNING, SoundCategory.PLAYERS, 1.0f, getPitch(serverPlayer));
                 return ActionResult.SUCCESS;
             }
 
             if (isAxolotlPossessing(serverPlayer) && entity instanceof LivingEntity target) {
-                target.damage(serverPlayer.getDamageSources().playerAttack(serverPlayer), 2.0f);
+                target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), serverPlayer.getDamageSources().playerAttack(serverPlayer), 2.0f);
                 markProvoked(target, serverPlayer);
                 serverPlayer.swingHand(hand, true);
                 return ActionResult.SUCCESS;
             }
 
             if (isBeePossessing(serverPlayer) && entity instanceof LivingEntity target) {
-                target.damage(serverPlayer.getDamageSources().playerAttack(serverPlayer),
-                        getBeeDamage(serverPlayer.getWorld().getDifficulty()));
-                int poisonSeconds = getBeePoisonSeconds(serverPlayer.getWorld().getDifficulty());
+                target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), serverPlayer.getDamageSources().playerAttack(serverPlayer), getBeeDamage(serverPlayer.getEntityWorld().getDifficulty()));
+                int poisonSeconds = getBeePoisonSeconds(serverPlayer.getEntityWorld().getDifficulty());
                 if (poisonSeconds > 0) {
                     target.addStatusEffect(new StatusEffectInstance(StatusEffects.POISON, poisonSeconds * 20, 0));
                 }
                 markProvoked(target, serverPlayer);
                 serverPlayer.swingHand(hand, true);
-                serverPlayer.getWorld().playSound(null, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
+                serverPlayer.getEntityWorld().playSound(null, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
                         SoundEvents.ENTITY_BEE_STING, SoundCategory.PLAYERS, 1.0f, 1.0f);
                 return ActionResult.SUCCESS;
             }
@@ -217,6 +216,7 @@ public final class BeastPossessionController {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             EntityType<?> type = PossessionManager.getPossessedType(player);
             if (!isTrackedType(type)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
             if (type == EntityType.TURTLE && source.equals(player.getDamageSources().drown())) {
                 return false;
@@ -241,8 +241,8 @@ public final class BeastPossessionController {
 
             SoundEvent hurt = getHurtSound(player);
             if (hurt != null) {
-                player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                        hurt, SoundCategory.PLAYERS, 1.0f, getPitch(player));
+                net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                        player, hurt, getPitch(player));
             }
 
             if (source.getAttacker() instanceof LivingEntity attacker) {
@@ -265,7 +265,7 @@ public final class BeastPossessionController {
             if (!isTrackedType(PossessionManager.getPossessedType(player))) return;
             SoundEvent death = getDeathSound(player);
             if (death != null) {
-                player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                         death, SoundCategory.PLAYERS, 1.0f, getPitch(player));
             }
         });
@@ -280,13 +280,16 @@ public final class BeastPossessionController {
 
         if (type == EntityType.HORSE || type == EntityType.MULE || type == EntityType.ZOMBIE_HORSE || type == EntityType.SKELETON_HORSE) {
             if (player.age % 400 == 0) {
-                player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                         SoundEvents.ENTITY_HORSE_EAT, SoundCategory.PLAYERS, 0.8f, getPitch(player));
+            }
+            if (type == EntityType.ZOMBIE_HORSE) {
+                handleZombieHorseSunlightBurn(player);
             }
         }
 
         if (isGoatPossessing(player) && player.age % 160 == 0 && player.getRandom().nextFloat() < 0.35f) {
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_GOAT_AMBIENT, SoundCategory.PLAYERS, 1.0f, getPitch(player));
         }
 
@@ -326,7 +329,7 @@ public final class BeastPossessionController {
             }
             if (BeastState.isServerAxolotlPlayingDead(player.getUuid(), player.age)) {
                 player.setVelocity(0.0, 0.0, 0.0);
-                player.velocityModified = true;
+                player.velocityDirty = true;
                 player.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, 20, 0, false, false, false));
             } else {
                 maybeStartAxolotlPlayDead(player);
@@ -337,11 +340,11 @@ public final class BeastPossessionController {
         }
 
         if (isSnowGolemPossessing(player)) {
-            if (player.isWet()) {
-                player.damage(player.getDamageSources().drown(), 2.0f);
+            if (player.isTouchingWaterOrRain()) {
+                player.damage(player.getEntityWorld(), player.getDamageSources().drown(), 2.0f);
             }
             if (isHotSnowGolemLocation(player) && !player.hasStatusEffect(StatusEffects.FIRE_RESISTANCE) && player.age % 20 == 0) {
-                player.damage(player.getDamageSources().onFire(), 1.0f);
+                player.damage(player.getEntityWorld(), player.getDamageSources().onFire(), 1.0f);
             }
             leaveSnowTrail(player);
         }
@@ -366,7 +369,7 @@ public final class BeastPossessionController {
             }
             player.refreshPositionAndAngles(anchor[0], anchor[1], anchor[2], player.getYaw(), 0.0f);
             player.setVelocity(0.0, 0.0, 0.0);
-            player.velocityModified = true;
+            player.velocityDirty = true;
             player.fallDistance = 0.0f;
             aggroGolems(player, 24.0);
         }
@@ -374,36 +377,38 @@ public final class BeastPossessionController {
 
     public static void handleShulkerAttack(ServerPlayerEntity player, UUID targetUuid) {
         if (!isShulkerPossessing(player) || targetUuid == null) return;
-        if (player.getItemCooldownManager().isCoolingDown(Items.SHULKER_SHELL)) return;
+        ItemStack shulkerShellStack = new ItemStack(Items.SHULKER_SHELL);
+        if (player.getItemCooldownManager().isCoolingDown(shulkerShellStack)) return;
 
-        Entity entity = player.getServerWorld().getEntity(targetUuid);
+        Entity entity = player.getEntityWorld().getEntity(targetUuid);
         if (!(entity instanceof LivingEntity target) || !target.isAlive()) return;
         if (target.squaredDistanceTo(player) > 400.0) return;
 
-        ShulkerBulletEntity bullet = new ShulkerBulletEntity(player.getWorld(), player, target, net.minecraft.util.math.Direction.Axis.X);
+        ShulkerBulletEntity bullet = new ShulkerBulletEntity(player.getEntityWorld(), player, target, net.minecraft.util.math.Direction.Axis.X);
         bullet.refreshPositionAndAngles(player.getX(), player.getEyeY(), player.getZ(), player.getYaw(), player.getPitch());
-        player.getWorld().spawnEntity(bullet);
-        player.getItemCooldownManager().set(Items.SHULKER_SHELL, 20);
+        player.getEntityWorld().spawnEntity(bullet);
+        player.getItemCooldownManager().set(shulkerShellStack, 20);
         long untilTick = player.age + 40L;
         BeastState.setServerShulkerOpenUntil(player.getUuid(), untilTick);
         BeastNetworking.broadcastShulkerOpen(player, untilTick);
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_SHULKER_SHOOT, SoundCategory.PLAYERS, 1.0f, 1.0f);
     }
 
     public static void handleSnowballAttack(ServerPlayerEntity player, UUID targetUuid) {
         if (!isSnowGolemPossessing(player)) return;
-        if (player.getItemCooldownManager().isCoolingDown(Items.SNOWBALL)) return;
+        ItemStack snowballStack = new ItemStack(Items.SNOWBALL);
+        if (player.getItemCooldownManager().isCoolingDown(snowballStack)) return;
 
         LivingEntity target = null;
         if (targetUuid != null) {
-            Entity entity = player.getServerWorld().getEntity(targetUuid);
+            Entity entity = player.getEntityWorld().getEntity(targetUuid);
             if (entity instanceof LivingEntity living && living.isAlive() && living.squaredDistanceTo(player) <= 225.0) {
                 target = living;
             }
         }
 
-        SnowballEntity snowball = new SnowballEntity(player.getWorld(), player);
+        SnowballEntity snowball = new SnowballEntity(player.getEntityWorld(), player, snowballStack);
         snowball.refreshPositionAndAngles(player.getX(), player.getEyeY(), player.getZ(), player.getYaw(), player.getPitch());
         if (target != null) {
             Vec3d dir = target.getEyePos().subtract(player.getEyePos()).normalize();
@@ -411,9 +416,9 @@ public final class BeastPossessionController {
         } else {
             snowball.setVelocity(player, player.getPitch(), player.getYaw(), 0.0f, 1.5f, 1.0f);
         }
-        player.getWorld().spawnEntity(snowball);
-        player.getItemCooldownManager().set(Items.SNOWBALL, 10);
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().spawnEntity(snowball);
+        player.getItemCooldownManager().set(snowballStack, 10);
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_SNOW_GOLEM_SHOOT, SoundCategory.PLAYERS, 1.0f, 1.0f);
     }
 
@@ -614,7 +619,7 @@ public final class BeastPossessionController {
         boolean angry = !BeastState.isServerBeeAngry(player.getUuid());
         BeastState.setServerBeeAngry(player.getUuid(), angry);
         BeastNetworking.broadcastBeeAngry(player, angry);
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 angry ? SoundEvents.ENTITY_BEE_LOOP_AGGRESSIVE : SoundEvents.ENTITY_BEE_POLLINATE,
                 SoundCategory.PLAYERS, 1.0f, 1.0f);
     }
@@ -628,7 +633,7 @@ public final class BeastPossessionController {
             player.getAbilities().flying = false;
         }
         player.sendAbilitiesUpdate();
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_PARROT_FLY, SoundCategory.PLAYERS, 0.8f, 1.0f);
     }
 
@@ -643,29 +648,29 @@ public final class BeastPossessionController {
         if (horizontal.lengthSquared() < 0.0001) return true;
 
         player.setVelocity(horizontal.x * 1.6, 0.7, horizontal.z * 1.6);
-        player.velocityModified = true;
+        player.velocityDirty = true;
         player.fallDistance = 0.0f;
         LAST_CAMEL_DASH.put(player.getUuid(), (long) player.age);
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_CAMEL_DASH, SoundCategory.PLAYERS, 1.0f, 1.0f);
         return true;
     }
 
     private static void handleGoatRam(ServerPlayerEntity player, LivingEntity target) {
-        Vec3d direction = target.getPos().subtract(player.getPos());
+        Vec3d direction = target.getEntityPos().subtract(player.getEntityPos());
         direction = direction.lengthSquared() < 0.0001 ? player.getRotationVec(1.0f) : direction.normalize();
         player.setVelocity(direction.x * 1.55, Math.max(player.getVelocity().y, 0.18), direction.z * 1.55);
-        player.velocityModified = true;
-        target.damage(player.getDamageSources().playerAttack(player), 2.0f);
+        player.velocityDirty = true;
+        target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), player.getDamageSources().playerAttack(player), 2.0f);
         target.takeKnockback(4.5f, -direction.x, -direction.z);
         markProvoked(target, player);
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_GOAT_RAM_IMPACT, SoundCategory.PLAYERS, 1.0f, getPitch(player));
         player.swingHand(Hand.MAIN_HAND, true);
     }
 
     private static void rallyPolarBears(ServerPlayerEntity player, LivingEntity attacker) {
-        List<PolarBearEntity> bears = player.getServerWorld().getEntitiesByClass(
+        List<PolarBearEntity> bears = player.getEntityWorld().getEntitiesByClass(
                 PolarBearEntity.class, player.getBoundingBox().expand(15.0), LivingEntity::isAlive);
         for (PolarBearEntity bear : bears) {
             bear.setTarget(attacker);
@@ -674,31 +679,31 @@ public final class BeastPossessionController {
     }
 
     private static void rallyBees(ServerPlayerEntity player, LivingEntity attacker) {
-        List<BeeEntity> bees = player.getServerWorld().getEntitiesByClass(
+        List<BeeEntity> bees = player.getEntityWorld().getEntitiesByClass(
                 BeeEntity.class, player.getBoundingBox().expand(20.0), LivingEntity::isAlive);
         for (BeeEntity bee : bees) {
             bee.setTarget(attacker);
             bee.setAttacker(attacker);
-            bee.setAngryAt(attacker.getUuid());
-            bee.setAngerTime(200);
+            bee.setAngryAt(net.minecraft.entity.LazyEntityReference.of(attacker));
+            bee.setAngerDuration(200L);
         }
     }
 
     private static void aggroGolems(ServerPlayerEntity player, double radius) {
         if (player.age % 10 != 0) return;
-        for (IronGolemEntity golem : player.getWorld().getEntitiesByClass(IronGolemEntity.class,
+        for (IronGolemEntity golem : player.getEntityWorld().getEntitiesByClass(IronGolemEntity.class,
                 player.getBoundingBox().expand(radius), LivingEntity::isAlive)) {
             golem.setTarget(player);
-            golem.setAngryAt(player.getUuid());
+            golem.setAngryAt(net.minecraft.entity.LazyEntityReference.of(player));
         }
     }
 
     private static void aggroEndermen(ServerPlayerEntity player, double radius) {
         if (player.age % 10 != 0) return;
-        for (EndermanEntity enderman : player.getWorld().getEntitiesByClass(EndermanEntity.class,
+        for (EndermanEntity enderman : player.getEntityWorld().getEntitiesByClass(EndermanEntity.class,
                 player.getBoundingBox().expand(radius), LivingEntity::isAlive)) {
             enderman.setTarget(player);
-            enderman.setAngryAt(player.getUuid());
+            enderman.setAngryAt(net.minecraft.entity.LazyEntityReference.of(player));
         }
     }
 
@@ -711,14 +716,14 @@ public final class BeastPossessionController {
         BeastNetworking.broadcastAxolotlPlayDead(player, until);
         player.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, 100, 0, false, false, false));
         Box box = player.getBoundingBox().expand(24.0);
-        for (MobEntity mob : player.getServerWorld().getEntitiesByClass(MobEntity.class, box, MobEntity::isAlive)) {
+        for (MobEntity mob : player.getEntityWorld().getEntitiesByClass(MobEntity.class, box, MobEntity::isAlive)) {
             if (mob.getTarget() == player) {
                 mob.setTarget(null);
                 mob.setAttacker(null);
                 mob.getNavigation().stop();
                 if (mob instanceof net.minecraft.entity.mob.Angerable angerable) {
                     angerable.setAngryAt(null);
-                    angerable.setAngerTime(0);
+                    angerable.stopAnger();
                 }
                 net.sam.samrequiemmod.possession.zombie.ZombieTargetingState.clearProvoked(mob.getUuid());
             }
@@ -726,8 +731,8 @@ public final class BeastPossessionController {
     }
 
     private static boolean isHotSnowGolemLocation(ServerPlayerEntity player) {
-        if (player.getWorld().getRegistryKey() == net.minecraft.world.World.NETHER) return true;
-        RegistryKey<net.minecraft.world.biome.Biome> key = player.getWorld().getBiome(player.getBlockPos()).getKey().orElse(null);
+        if (player.getEntityWorld().getRegistryKey() == net.minecraft.world.World.NETHER) return true;
+        RegistryKey<net.minecraft.world.biome.Biome> key = player.getEntityWorld().getBiome(player.getBlockPos()).getKey().orElse(null);
         if (key == null) return false;
         String path = key.getValue().getPath();
         return path.contains("desert") || path.contains("savanna") || path.contains("badlands");
@@ -737,9 +742,21 @@ public final class BeastPossessionController {
         if (!player.isOnGround()) return;
         BlockPos pos = player.getBlockPos();
         BlockPos ground = pos.down();
-        if (player.getWorld().getBlockState(pos).isAir()
-                && player.getWorld().getBlockState(ground).isOpaqueFullCube(player.getWorld(), ground)) {
-            player.getWorld().setBlockState(pos, net.minecraft.block.Blocks.SNOW.getDefaultState());
+        if (player.getEntityWorld().getBlockState(pos).isAir()
+                && player.getEntityWorld().getBlockState(ground).isOpaqueFullCube()) {
+            player.getEntityWorld().setBlockState(pos, net.minecraft.block.Blocks.SNOW.getDefaultState());
+        }
+    }
+
+    private static void handleZombieHorseSunlightBurn(ServerPlayerEntity player) {
+        if (player.age % 20 != 0) return;
+        if (player.isCreative() || player.isSpectator()) return;
+        if (!player.getEntityWorld().isDay()) return;
+        if (player.isTouchingWaterOrRain()) return;
+        BlockPos eyePos = BlockPos.ofFloored(player.getX(), player.getEyeY(), player.getZ());
+        if (!player.getEntityWorld().isSkyVisible(eyePos)) return;
+        if (player.getEquippedStack(net.minecraft.entity.EquipmentSlot.HEAD).isEmpty()) {
+            player.setOnFireFor(8);
         }
     }
 
@@ -781,7 +798,7 @@ public final class BeastPossessionController {
         if (player.age % 140 != 0 || player.getRandom().nextFloat() >= 0.35f) return;
         SoundEvent sound = getAmbientSound(player);
         if (sound == null) return;
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 sound, SoundCategory.PLAYERS, 1.0f, getPitch(player));
     }
 
@@ -885,3 +902,9 @@ public final class BeastPossessionController {
         };
     }
 }
+
+
+
+
+
+

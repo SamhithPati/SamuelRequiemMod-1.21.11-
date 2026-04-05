@@ -1,11 +1,10 @@
 package net.sam.samrequiemmod.item;
 
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.TypedActionResult;
 import net.minecraft.world.World;
 import net.sam.samrequiemmod.possession.PossessionManager;
 
@@ -16,32 +15,33 @@ public class PossessionRelicItem extends Item {
     }
 
     @Override
-    public TypedActionResult<ItemStack> use(World world, net.minecraft.entity.player.PlayerEntity user, Hand hand) {
-        ItemStack stack = user.getStackInHand(hand);
-
-        if (world.isClient) {
-            return TypedActionResult.pass(stack);
+    public ActionResult use(World world, net.minecraft.entity.player.PlayerEntity user, Hand hand) {
+        if (world.isClient()) {
+            return ActionResult.PASS;
         }
 
         if (!(user instanceof ServerPlayerEntity serverPlayer)) {
-            return TypedActionResult.pass(stack);
+            return ActionResult.PASS;
         }
 
-        if (hand != Hand.MAIN_HAND) {
-            return TypedActionResult.pass(stack);
-        }
-
-        if (!user.isSneaking()) {
-            return TypedActionResult.pass(stack);
+        if (hand != Hand.MAIN_HAND || !user.isSneaking()) {
+            return ActionResult.PASS;
         }
 
         if (!PossessionManager.isPossessing(serverPlayer)) {
-            serverPlayer.sendMessage(Text.literal("§eYou are not currently possessing anything."), true);
-            return TypedActionResult.fail(stack);
+            serverPlayer.sendMessage(Text.literal("You are not currently possessing anything."), true);
+            return ActionResult.FAIL;
         }
 
         PossessionManager.clearPossession(serverPlayer);
-        serverPlayer.sendMessage(Text.literal("§aYou returned to your normal body."), true);
-        return TypedActionResult.success(stack);
+        serverPlayer.sendMessage(Text.literal("You returned to your normal body."), true);
+        return ActionResult.SUCCESS;
     }
 }
+
+
+
+
+
+
+

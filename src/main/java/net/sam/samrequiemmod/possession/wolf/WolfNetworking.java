@@ -80,33 +80,33 @@ public final class WolfNetworking {
     }
 
     public static void broadcastAngry(ServerPlayerEntity player, boolean angry) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         AngrySyncPayload payload = new AngrySyncPayload(player.getUuid(), angry);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
 
     public static void broadcastBaby(ServerPlayerEntity player, boolean baby) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         BabySyncPayload payload = new BabySyncPayload(player.getUuid(), baby);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
 
     public static void broadcastVariant(ServerPlayerEntity player, String variantId) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         VariantSyncPayload payload = new VariantSyncPayload(player.getUuid(), variantId);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
 
     public static void broadcastShake(ServerPlayerEntity player, int durationTicks) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         ShakeSyncPayload payload = new ShakeSyncPayload(player.getUuid(), durationTicks);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
@@ -211,3 +211,9 @@ public final class WolfNetworking {
         }
     }
 }
+
+
+
+
+
+

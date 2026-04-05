@@ -58,13 +58,13 @@ public final class PossessionNetworking {
     }
 
     public static void broadcastPossessionSync(ServerPlayerEntity player, @Nullable EntityType<?> type) {
-        if (player.getServer() == null) {
+        if (player.getEntityWorld().getServer() == null) {
             return;
         }
 
         UUID playerUuid = player.getUuid();
 
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             sendPossessionSync(recipient, playerUuid, type);
         }
     }
@@ -96,3 +96,8 @@ public final class PossessionNetworking {
         }
     }
 }
+
+
+
+
+

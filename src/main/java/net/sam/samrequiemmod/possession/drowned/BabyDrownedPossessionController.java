@@ -45,16 +45,13 @@ public final class BabyDrownedPossessionController {
     public static void register() {
 
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity serverPlayer)) return ActionResult.PASS;
             if (!isBabyDrownedPossessing(serverPlayer)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity livingTarget)) return ActionResult.PASS;
             if (player.getMainHandStack().isOf(ModItems.POSSESSION_RELIC)) return ActionResult.PASS;
-            if (player.getAttackCooldownProgress(0.5f) < 0.9f) return ActionResult.SUCCESS;
-
             if (ZombiePossessionController.isAlwaysPassive(entity)) {
-                livingTarget.damage(serverPlayer.getDamageSources().playerAttack(serverPlayer),
-                        calculateDamage(serverPlayer));
+                livingTarget.damage(((net.minecraft.server.world.ServerWorld) livingTarget.getEntityWorld()), serverPlayer.getDamageSources().playerAttack(serverPlayer), calculateDamage(serverPlayer));
                 LAST_HIT_TICK.put(serverPlayer.getUuid(), (long) serverPlayer.age);
                 ZombieAttackSyncNetworking.broadcastZombieAttacking(serverPlayer, true);
                 serverPlayer.swingHand(hand, true);
@@ -64,7 +61,9 @@ public final class BabyDrownedPossessionController {
             if (entity instanceof MobEntity mob) ZombieTargetingState.markProvoked(mob.getUuid(), serverPlayer.getUuid());
 
             boolean damaged = livingTarget.damage(
-                    serverPlayer.getDamageSources().playerAttack(serverPlayer), calculateDamage(serverPlayer));
+                    (ServerWorld) livingTarget.getEntityWorld(),
+                    serverPlayer.getDamageSources().playerAttack(serverPlayer),
+                    calculateDamage(serverPlayer));
             if (damaged) {
                 world.playSound(null, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
                         SoundEvents.ENTITY_DROWNED_AMBIENT, SoundCategory.PLAYERS, 0.65f, 1.6f);
@@ -88,8 +87,8 @@ public final class BabyDrownedPossessionController {
             Entity attacker = source.getAttacker();
             if (attacker instanceof net.minecraft.entity.mob.SlimeEntity) return true;
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_DROWNED_HURT, SoundCategory.PLAYERS, 1.0f, 1.6f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_DROWNED_HURT, 1.6f);
 
             if (attacker != null) {
                 if (!ZombiePossessionController.isZombieSubtype(attacker))
@@ -101,7 +100,7 @@ public final class BabyDrownedPossessionController {
 
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (entity instanceof ServerPlayerEntity player && isBabyDrownedPossessing(player)) {
-                player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                         SoundEvents.ENTITY_DROWNED_DEATH, SoundCategory.PLAYERS, 1.0f, 1.6f);
             }
             if (entity instanceof MobEntity) ZombieTargetingState.clearProvoked(entity.getUuid());
@@ -109,7 +108,7 @@ public final class BabyDrownedPossessionController {
 
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof VillagerEntity villager)) return true;
-            if (!(entity.getWorld() instanceof ServerWorld sw)) return true;
+            if (!(entity.getEntityWorld() instanceof ServerWorld sw)) return true;
             if (!(source.getAttacker() instanceof ServerPlayerEntity p)) return true;
             if (!isBabyDrownedPossessing(p)) return true;
             if (amount < villager.getHealth()) return true;
@@ -120,7 +119,7 @@ public final class BabyDrownedPossessionController {
             if (chance <= 0.0f) return true;
             if (chance < 1.0f && sw.getRandom().nextFloat() >= chance) return true;
 
-            ZombieVillagerEntity zv = EntityType.ZOMBIE_VILLAGER.create(sw);
+            ZombieVillagerEntity zv = EntityType.ZOMBIE_VILLAGER.create(sw, SpawnReason.CONVERSION);
             if (zv == null) return true;
             zv.refreshPositionAndAngles(villager.getX(), villager.getY(), villager.getZ(),
                     villager.getYaw(), villager.getPitch());
@@ -168,9 +167,9 @@ public final class BabyDrownedPossessionController {
     }
 
     private static float calculateDamage(ServerPlayerEntity player) {
-        double atk = player.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE);
+        double atk = player.getAttributeValue(EntityAttributes.ATTACK_DAMAGE);
         if (atk > 1.5) return (float) atk;
-        return switch (player.getServerWorld().getDifficulty()) {
+        return switch (player.getEntityWorld().getDifficulty()) {
             case EASY -> 2.0f; case NORMAL -> 3.0f; case HARD -> 4.5f; default -> 3.0f;
         };
     }
@@ -178,7 +177,7 @@ public final class BabyDrownedPossessionController {
     private static void rallyNearbyZombies(ServerPlayerEntity player, Entity threat) {
         if (!(threat instanceof LivingEntity lt)) return;
         Box box = player.getBoundingBox().expand(40.0);
-        for (ZombieEntity z : player.getWorld().getEntitiesByClass(ZombieEntity.class, box, e -> e.isAlive()))
+        for (ZombieEntity z : player.getEntityWorld().getEntitiesByClass(ZombieEntity.class, box, e -> e.isAlive()))
             z.setTarget(lt);
     }
 
@@ -197,7 +196,8 @@ public final class BabyDrownedPossessionController {
     }
 
     private static void preventNaturalHealing(ServerPlayerEntity player) {
-        if (player.timeUntilRegen > 0) player.timeUntilRegen = 0;
+        // HungerManagerMixin already blocks passive healing for possessed players.
+        // Do not touch timeUntilRegen here: vanilla also uses it for hurt i-frames.
     }
 
     private static void preventDrowning(ServerPlayerEntity player) {
@@ -219,9 +219,9 @@ public final class BabyDrownedPossessionController {
     private static void handleSunlightBurn(ServerPlayerEntity player) {
         if (player.age % 20 != 0) return;
         if (player.isCreative() || player.isSpectator()) return;
-        if (!player.getWorld().isDay()) return;
-        if (player.isWet() || player.isTouchingWater()) return;
-        if (!player.getWorld().isSkyVisible(BlockPos.ofFloored(player.getX(), player.getEyeY(), player.getZ())))
+        if (!player.getEntityWorld().isDay()) return;
+        if (player.isTouchingWaterOrRain() || player.isTouchingWater()) return;
+        if (!player.getEntityWorld().isSkyVisible(BlockPos.ofFloored(player.getX(), player.getEyeY(), player.getZ())))
             return;
         if (player.getEquippedStack(EquipmentSlot.HEAD).isEmpty()) player.setOnFireFor(8);
     }
@@ -229,20 +229,20 @@ public final class BabyDrownedPossessionController {
     private static void handleAmbientSound(ServerPlayerEntity player) {
         if (player.age % 160 != 0) return;
         if (player.getRandom().nextFloat() >= 0.45f) return;
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_DROWNED_AMBIENT, SoundCategory.HOSTILE, 1.0f, 1.6f);
     }
 
     private static void repelVillagers(ServerPlayerEntity player) {
         if (player.age % 40 != 0) return;
         Box box = player.getBoundingBox().expand(16.0);
-        for (VillagerEntity v : player.getWorld().getEntitiesByClass(VillagerEntity.class, box, e -> e.isAlive())) {
+        for (VillagerEntity v : player.getEntityWorld().getEntitiesByClass(VillagerEntity.class, box, e -> e.isAlive())) {
             if (v.squaredDistanceTo(player) > 64.0) continue;
-            Vec3d t = net.minecraft.entity.ai.NoPenaltyTargeting.findFrom(v, 16, 7, player.getPos());
+            Vec3d t = net.minecraft.entity.ai.NoPenaltyTargeting.findFrom(v, 16, 7, player.getEntityPos());
             if (t == null) {
-                Vec3d a = v.getPos().subtract(player.getPos());
+                Vec3d a = v.getEntityPos().subtract(player.getEntityPos());
                 if (a.lengthSquared() < 0.001) a = new Vec3d(1, 0, 0);
-                t = v.getPos().add(a.normalize().multiply(10.0));
+                t = v.getEntityPos().add(a.normalize().multiply(10.0));
             }
             v.getNavigation().startMovingTo(t.x, t.y, t.z, 0.6);
         }
@@ -251,14 +251,19 @@ public final class BabyDrownedPossessionController {
     private static void aggroIronGolems(ServerPlayerEntity player) {
         if (player.age % 10 != 0) return;
         Box box = player.getBoundingBox().expand(24.0);
-        for (IronGolemEntity g : player.getWorld().getEntitiesByClass(IronGolemEntity.class, box, e -> e.isAlive()))
-            if (g.squaredDistanceTo(player) <= 576.0) { g.setTarget(player); g.setAngryAt(player.getUuid()); }
+        for (IronGolemEntity g : player.getEntityWorld().getEntitiesByClass(IronGolemEntity.class, box, e -> e.isAlive()))
+            if (g.squaredDistanceTo(player) <= 576.0) { g.setTarget(player); g.setAngryAt(net.minecraft.entity.LazyEntityReference.of(player)); }
     }
 
     private static void aggroSnowGolems(ServerPlayerEntity player) {
         if (player.age % 10 != 0) return;
         Box box = player.getBoundingBox().expand(10.0);
-        for (SnowGolemEntity g : player.getWorld().getEntitiesByClass(SnowGolemEntity.class, box, e -> e.isAlive()))
+        for (SnowGolemEntity g : player.getEntityWorld().getEntitiesByClass(SnowGolemEntity.class, box, e -> e.isAlive()))
             g.setTarget(player);
     }
 }
+
+
+
+
+

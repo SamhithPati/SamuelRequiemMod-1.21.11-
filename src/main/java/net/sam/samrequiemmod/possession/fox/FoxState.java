@@ -32,3 +32,9 @@ public final class FoxState {
         CLIENT_VARIANTS.remove(uuid);
     }
 }
+
+
+
+
+
+

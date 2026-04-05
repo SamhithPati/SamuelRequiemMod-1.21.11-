@@ -48,16 +48,14 @@ public final class ZombieVillagerPossessionController {
 
         // ── Player attacks a mob ─────────────────────────────────────────────
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity serverPlayer)) return ActionResult.PASS;
             if (!isZombieVillagerPossessing(serverPlayer)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity livingTarget)) return ActionResult.PASS;
             if (player.getMainHandStack().isOf(ModItems.POSSESSION_RELIC)) return ActionResult.PASS;
-            if (player.getAttackCooldownProgress(0.5f) < 0.9f) return ActionResult.SUCCESS;
-
             if (ZombiePossessionController.isAlwaysPassive(entity)) {
                 float passiveDamage = calculateDamage(serverPlayer);
-                livingTarget.damage(serverPlayer.getDamageSources().playerAttack(serverPlayer), passiveDamage);
+                livingTarget.damage(((net.minecraft.server.world.ServerWorld) livingTarget.getEntityWorld()), serverPlayer.getDamageSources().playerAttack(serverPlayer), passiveDamage);
                 LAST_HIT_TICK.put(serverPlayer.getUuid(), (long) serverPlayer.age);
                 ZombieAttackSyncNetworking.broadcastZombieAttacking(serverPlayer, true);
                 serverPlayer.swingHand(hand, true);
@@ -70,7 +68,9 @@ public final class ZombieVillagerPossessionController {
 
             float damage = calculateDamage(serverPlayer);
             boolean damaged = livingTarget.damage(
-                    serverPlayer.getDamageSources().playerAttack(serverPlayer), damage);
+                    serverPlayer.getEntityWorld(),
+                    serverPlayer.getDamageSources().playerAttack(serverPlayer),
+                    damage);
 
             if (damaged) {
                 world.playSound(null,
@@ -100,7 +100,7 @@ public final class ZombieVillagerPossessionController {
             Entity attacker = source.getAttacker();
             if (attacker instanceof net.minecraft.entity.mob.SlimeEntity) return true;
 
-            player.getWorld().playSound(null,
+            player.getEntityWorld().playSound(null,
                     player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_ZOMBIE_VILLAGER_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
@@ -117,7 +117,7 @@ public final class ZombieVillagerPossessionController {
         // ── Death ────────────────────────────────────────────────────────────
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (entity instanceof ServerPlayerEntity player && isZombieVillagerPossessing(player)) {
-                player.getWorld().playSound(null,
+                player.getEntityWorld().playSound(null,
                         player.getX(), player.getY(), player.getZ(),
                         SoundEvents.ENTITY_ZOMBIE_VILLAGER_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
             }
@@ -126,7 +126,7 @@ public final class ZombieVillagerPossessionController {
         // ── Villager zombification ────────────────────────────────────────────
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof VillagerEntity villager)) return true;
-            if (!(entity.getWorld() instanceof ServerWorld serverWorld)) return true;
+            if (!(entity.getEntityWorld() instanceof ServerWorld serverWorld)) return true;
 
             Entity attacker = source.getAttacker();
             if (!(attacker instanceof ServerPlayerEntity zvPlayer)) return true;
@@ -144,7 +144,7 @@ public final class ZombieVillagerPossessionController {
             if (chance <= 0.0f) return true;
             if (chance < 1.0f && serverWorld.getRandom().nextFloat() >= chance) return true;
 
-            ZombieVillagerEntity zombieVillager = EntityType.ZOMBIE_VILLAGER.create(serverWorld);
+            ZombieVillagerEntity zombieVillager = EntityType.ZOMBIE_VILLAGER.create(serverWorld, SpawnReason.CONVERSION);
             if (zombieVillager == null) return true;
 
             zombieVillager.refreshPositionAndAngles(
@@ -176,19 +176,21 @@ public final class ZombieVillagerPossessionController {
             return;
         }
 
+        ZombieVillagerCureTracker.tick(player);
         preventNaturalHealing(player);
         lockHunger(player);
         handleSunlightBurn(player);
         handleAmbientSound(player);
         preventSwimming(player);
         preventDrowning(player);
-        ZombiePossessionController.handleWaterConversion(player);
         handlePoisonImmunity(player);
         handleHarmingHeals(player);
         repelVillagers(player);
         aggroIronGolems(player);
         aggroSnowGolems(player);
         tickArmsRaised(player);
+        net.sam.samrequiemmod.possession.drowned.DrownedTridentManager.removeTrident(player);
+        net.sam.samrequiemmod.possession.drowned.DrownedTridentManager.clearPlayer(player.getUuid());
     }
 
     public static boolean isZombieVillagerPossessing(PlayerEntity player) {
@@ -196,10 +198,17 @@ public final class ZombieVillagerPossessionController {
                 && !BabyZombieVillagerState.isServerBaby(player);
     }
 
+    public static boolean canStartCure(ServerPlayerEntity player, ItemStack stack) {
+        return isZombieVillagerPossessing(player)
+                && stack.isOf(net.minecraft.item.Items.GOLDEN_APPLE)
+                && player.hasStatusEffect(StatusEffects.WEAKNESS)
+                && !ZombieVillagerCureTracker.isCuring(player);
+    }
+
     private static float calculateDamage(ServerPlayerEntity player) {
-        double atk = player.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE);
+        double atk = player.getAttributeValue(EntityAttributes.ATTACK_DAMAGE);
         if (atk > 1.5) return (float) atk;
-        return getBaseDamage(player.getServerWorld().getDifficulty());
+        return getBaseDamage(player.getEntityWorld().getDifficulty());
     }
 
     private static float getBaseDamage(Difficulty difficulty) {
@@ -214,7 +223,7 @@ public final class ZombieVillagerPossessionController {
     private static void rallyNearbyZombies(ServerPlayerEntity player, Entity threat) {
         if (!(threat instanceof LivingEntity livingThreat)) return;
         Box box = player.getBoundingBox().expand(40.0);
-        List<ZombieEntity> nearby = player.getWorld().getEntitiesByClass(
+        List<ZombieEntity> nearby = player.getEntityWorld().getEntitiesByClass(
                 ZombieEntity.class, box, z -> z.isAlive());
         for (ZombieEntity zombie : nearby) zombie.setTarget(livingThreat);
     }
@@ -234,16 +243,12 @@ public final class ZombieVillagerPossessionController {
     }
 
     private static void preventNaturalHealing(ServerPlayerEntity player) {
-        if (player.timeUntilRegen > 0) player.timeUntilRegen = 0;
+        // HungerManagerMixin already blocks passive healing for possessed players.
+        // Do not touch timeUntilRegen here: vanilla also uses it for hurt i-frames.
     }
 
     private static void preventSwimming(ServerPlayerEntity player) {
-        if (!player.isTouchingWater()) return;
-        if (player.isSwimming()) player.setSwimming(false);
-        Vec3d vel = player.getVelocity();
-        double vy = Math.min(vel.y, -0.04);
-        player.setVelocity(vel.x * 0.5, vy, vel.z * 0.5);
-        player.velocityModified = true;
+        net.sam.samrequiemmod.possession.NoSwimPossessionHelper.disableSwimmingPose(player);
     }
 
     private static void preventDrowning(ServerPlayerEntity player) {
@@ -266,10 +271,10 @@ public final class ZombieVillagerPossessionController {
     private static void handleSunlightBurn(ServerPlayerEntity player) {
         if (player.age % 20 != 0) return;
         if (player.isCreative() || player.isSpectator()) return;
-        if (!player.getWorld().isDay()) return;
-        if (player.isWet()) return;
+        if (!player.getEntityWorld().isDay()) return;
+        if (player.isTouchingWaterOrRain()) return;
         BlockPos eyePos = BlockPos.ofFloored(player.getX(), player.getEyeY(), player.getZ());
-        if (!player.getWorld().isSkyVisible(eyePos)) return;
+        if (!player.getEntityWorld().isSkyVisible(eyePos)) return;
         if (player.getEquippedStack(net.minecraft.entity.EquipmentSlot.HEAD).isEmpty())
             player.setOnFireFor(8);
     }
@@ -277,7 +282,7 @@ public final class ZombieVillagerPossessionController {
     private static void handleAmbientSound(ServerPlayerEntity player) {
         if (player.age % 160 != 0) return;
         if (player.getRandom().nextFloat() >= 0.45f) return;
-        player.getWorld().playSound(null,
+        player.getEntityWorld().playSound(null,
                 player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_ZOMBIE_VILLAGER_AMBIENT, SoundCategory.HOSTILE, 1.0f, 1.0f);
     }
@@ -285,15 +290,15 @@ public final class ZombieVillagerPossessionController {
     private static void repelVillagers(ServerPlayerEntity player) {
         if (player.age % 40 != 0) return;
         Box box = player.getBoundingBox().expand(16.0);
-        List<VillagerEntity> villagers = player.getWorld().getEntitiesByClass(
+        List<VillagerEntity> villagers = player.getEntityWorld().getEntitiesByClass(
                 VillagerEntity.class, box, v -> v.isAlive());
         for (VillagerEntity villager : villagers) {
             if (villager.squaredDistanceTo(player) > 8.0 * 8.0) continue;
-            Vec3d target = net.minecraft.entity.ai.NoPenaltyTargeting.findFrom(villager, 16, 7, player.getPos());
+            Vec3d target = net.minecraft.entity.ai.NoPenaltyTargeting.findFrom(villager, 16, 7, player.getEntityPos());
             if (target == null) {
-                Vec3d away = villager.getPos().subtract(player.getPos());
+                Vec3d away = villager.getEntityPos().subtract(player.getEntityPos());
                 if (away.lengthSquared() < 0.001) away = new Vec3d(1, 0, 0);
-                target = villager.getPos().add(away.normalize().multiply(10.0));
+                target = villager.getEntityPos().add(away.normalize().multiply(10.0));
             }
             villager.getNavigation().startMovingTo(target.x, target.y, target.z, 0.6);
         }
@@ -302,12 +307,12 @@ public final class ZombieVillagerPossessionController {
     private static void aggroIronGolems(ServerPlayerEntity player) {
         if (player.age % 10 != 0) return;
         Box box = player.getBoundingBox().expand(24.0);
-        List<IronGolemEntity> golems = player.getWorld().getEntitiesByClass(
+        List<IronGolemEntity> golems = player.getEntityWorld().getEntitiesByClass(
                 IronGolemEntity.class, box, g -> g.isAlive());
         for (IronGolemEntity golem : golems) {
             if (golem.squaredDistanceTo(player) <= 24.0 * 24.0) {
                 golem.setTarget(player);
-                golem.setAngryAt(player.getUuid());
+                golem.setAngryAt(net.minecraft.entity.LazyEntityReference.of(player));
             }
         }
     }
@@ -315,7 +320,7 @@ public final class ZombieVillagerPossessionController {
     private static void aggroSnowGolems(ServerPlayerEntity player) {
         if (player.age % 10 != 0) return;
         Box box = player.getBoundingBox().expand(10.0);
-        List<SnowGolemEntity> golems = player.getWorld().getEntitiesByClass(
+        List<SnowGolemEntity> golems = player.getEntityWorld().getEntitiesByClass(
                 SnowGolemEntity.class, box, g -> g.isAlive());
         for (SnowGolemEntity golem : golems) golem.setTarget(player);
     }
@@ -328,3 +333,9 @@ public final class ZombieVillagerPossessionController {
         return ZombiePossessionController.getZombieFoodHealing(stack);
     }
 }
+
+
+
+
+
+

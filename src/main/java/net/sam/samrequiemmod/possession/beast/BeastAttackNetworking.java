@@ -29,9 +29,9 @@ public final class BeastAttackNetworking {
     }
 
     public static void broadcastPolarAttack(ServerPlayerEntity player) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         PolarAttackPayload payload = new PolarAttackPayload(player.getUuid(), player.age);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
@@ -54,3 +54,9 @@ public final class BeastAttackNetworking {
         public Id<? extends CustomPayload> getId() { return ID; }
     }
 }
+
+
+
+
+
+

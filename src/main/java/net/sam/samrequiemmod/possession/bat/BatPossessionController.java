@@ -25,7 +25,7 @@ public final class BatPossessionController {
 
     public static void register() {
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity serverPlayer)) return ActionResult.PASS;
             if (!isBatPossessing(serverPlayer)) return ActionResult.PASS;
             if (player.getMainHandStack().isOf(ModItems.POSSESSION_RELIC)) return ActionResult.PASS;
@@ -35,7 +35,8 @@ public final class BatPossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isBatPossessing(player)) return true;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_BAT_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
             return true;
         });
@@ -43,7 +44,7 @@ public final class BatPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isBatPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_BAT_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }
@@ -81,7 +82,13 @@ public final class BatPossessionController {
     private static void handleAmbientSound(ServerPlayerEntity player) {
         if (player.age % 120 != 0) return;
         if (player.getRandom().nextFloat() >= 0.45f) return;
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_BAT_AMBIENT, SoundCategory.HOSTILE, 0.7f, 1.0f);
     }
 }
+
+
+
+
+
+

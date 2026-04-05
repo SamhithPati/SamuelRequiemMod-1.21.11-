@@ -56,3 +56,8 @@ public class SoulTraderShrineStructure extends Structure {
         return ModStructures.SOUL_TRADER_SHRINE_TYPE;
     }
 }
+
+
+
+
+

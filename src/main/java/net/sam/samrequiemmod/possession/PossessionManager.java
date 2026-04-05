@@ -68,6 +68,7 @@ public final class PossessionManager {
         net.sam.samrequiemmod.possession.PossessionEffects.apply(player);
 
         PossessionNetworking.broadcastPossessionSync(player, type);
+        PossessionDimensionHelper.refreshDimensionsIfNeeded(player);
 
         // Set player health to match the possessed mob's current health,
         // clamped to the (now-updated) max health.
@@ -85,7 +86,30 @@ public final class PossessionManager {
 
         SamuelRequiemMod.LOGGER.info(
                 "[Possession] {} started possessing {}",
-                player.getGameProfile().getName(),
+                player.getName().getString(),
+                EntityType.getId(type)
+        );
+    }
+
+    public static void switchPossessionType(ServerPlayerEntity player, EntityType<?> type, float mobHealth) {
+        PossessionData data = getOrCreate(player);
+        data.setPossessedType(type);
+
+        net.sam.samrequiemmod.possession.PossessionEffects.apply(player);
+        PossessionNetworking.broadcastPossessionSync(player, type);
+        PossessionDimensionHelper.refreshDimensionsIfNeeded(player);
+
+        if (mobHealth > 0) {
+            player.setHealth(Math.min(mobHealth, player.getMaxHealth()));
+        } else {
+            player.setHealth(player.getMaxHealth());
+        }
+
+        clearNearbyMobTargets(player);
+
+        SamuelRequiemMod.LOGGER.info(
+                "[Possession] {} switched possession to {}",
+                player.getName().getString(),
                 EntityType.getId(type)
         );
     }
@@ -96,13 +120,13 @@ public final class PossessionManager {
      * Called on possession start so mobs stop mid-chase immediately.
      */
     private static void clearNearbyMobTargets(ServerPlayerEntity player) {
-        if (player.getServerWorld() == null) return;
+        if (player.getEntityWorld() == null) return;
         boolean villagerSafe = net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isVillagerPossessing(player);
         boolean batSafe = net.sam.samrequiemmod.possession.bat.BatPossessionController.isBatPossessing(player);
 
         net.minecraft.util.math.Box box = player.getBoundingBox().expand(48.0);
         java.util.List<net.minecraft.entity.mob.MobEntity> mobs =
-                player.getServerWorld().getEntitiesByClass(
+                player.getEntityWorld().getEntitiesByClass(
                         net.minecraft.entity.mob.MobEntity.class,
                         box,
                         mob -> mob.isAlive() && mob.getTarget() == player);
@@ -128,6 +152,8 @@ public final class PossessionManager {
         boolean wasWitherSkeleton = net.sam.samrequiemmod.possession.skeleton.WitherSkeletonPossessionController.isWitherSkeletonPossessing(player);
         boolean wasIronGolem = net.sam.samrequiemmod.possession.iron_golem.IronGolemPossessionController.isIronGolemPossessing(player);
         boolean wasEnderman = net.sam.samrequiemmod.possession.enderman.EndermanPossessionController.isEndermanPossessing(player);
+        boolean wasWarden = net.sam.samrequiemmod.possession.warden.WardenPossessionController.isWardenPossessing(player);
+        boolean wasBreeze = net.sam.samrequiemmod.possession.breeze.BreezePossessionController.isBreezePossessing(player);
         boolean wasCreeper = net.sam.samrequiemmod.possession.creeper.CreeperPossessionController.isCreeperPossessing(player);
         boolean wasFish = net.sam.samrequiemmod.possession.aquatic.FishPossessionController.isFishPossessing(player);
         boolean wasSquid = net.sam.samrequiemmod.possession.aquatic.SquidPossessionController.isSquidPossessing(player);
@@ -170,8 +196,10 @@ public final class PossessionManager {
         }
 
         LAST_DIMENSION_TYPE.remove(player.getUuid());
+        PossessionHurtSoundHelper.clear(player.getUuid());
         PossessionNetworking.broadcastPossessionSync(player, null);
-
+        PossessionDimensionHelper.clearPlayer(player.getUuid());
+        player.calculateDimensions();
         // Clear baby zombie state on unpossess
         BabyZombieState.setServerBaby(player.getUuid(), false);
         BabyZombieNetworking.broadcastBabyZombieSync(player, false);
@@ -252,6 +280,16 @@ public final class PossessionManager {
         } else {
             net.sam.samrequiemmod.possession.enderman.EndermanPossessionController.onUnpossessUuid(player.getUuid());
         }
+        if (wasWarden) {
+            net.sam.samrequiemmod.possession.warden.WardenPossessionController.onUnpossess(player);
+        } else {
+            net.sam.samrequiemmod.possession.warden.WardenPossessionController.onUnpossessUuid(player.getUuid());
+        }
+        if (wasBreeze) {
+            net.sam.samrequiemmod.possession.breeze.BreezePossessionController.onUnpossess(player);
+        } else {
+            net.sam.samrequiemmod.possession.breeze.BreezePossessionController.onUnpossessUuid(player.getUuid());
+        }
 
         // Clean up creeper possession state (fuse, charged status, explosion immunity)
         if (wasCreeper) {
@@ -323,6 +361,8 @@ public final class PossessionManager {
         // Clear baby passive mob state on unpossess
         net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.setServerBaby(player.getUuid(), false);
         net.sam.samrequiemmod.possession.passive.BabyPassiveMobNetworking.broadcast(player, false);
+        net.sam.samrequiemmod.possession.passive.SheepAppearanceState.clear(player.getUuid());
+        net.sam.samrequiemmod.possession.passive.PandaAppearanceState.clear(player.getUuid());
         net.sam.samrequiemmod.possession.wolf.WolfBabyState.setServerBaby(player.getUuid(), false);
         net.sam.samrequiemmod.possession.wolf.WolfNetworking.broadcastBaby(player, false);
         net.sam.samrequiemmod.possession.wolf.WolfNetworking.broadcastAngry(player, false);
@@ -408,9 +448,9 @@ public final class PossessionManager {
         // Clear all mobs this player provoked during possession, and wipe their anger memory
         java.util.Set<java.util.UUID> provokedMobs =
                 net.sam.samrequiemmod.possession.zombie.ZombieTargetingState.clearPlayerProvoked(player.getUuid());
-        if (!provokedMobs.isEmpty() && player.getServerWorld() != null) {
+        if (!provokedMobs.isEmpty() && player.getEntityWorld() != null) {
             net.minecraft.util.math.Box box = player.getBoundingBox().expand(128.0);
-            for (net.minecraft.entity.mob.MobEntity mob : player.getServerWorld()
+            for (net.minecraft.entity.mob.MobEntity mob : player.getEntityWorld()
                     .getEntitiesByClass(net.minecraft.entity.mob.MobEntity.class, box, m -> m.isAlive())) {
                 if (!provokedMobs.contains(mob.getUuid())) continue;
                 net.sam.samrequiemmod.possession.zombie.ZombieTargetingState.clearProvoked(mob.getUuid());
@@ -420,7 +460,7 @@ public final class PossessionManager {
                 if (mob instanceof net.minecraft.entity.mob.Angerable angerable
                         && player.getUuid().equals(angerable.getAngryAt())) {
                     angerable.setAngryAt(null);
-                    angerable.setAngerTime(0);
+                    angerable.stopAnger();
                 }
                 if (mob instanceof net.minecraft.entity.passive.IronGolemEntity golem)
                     golem.setAttacking(false);
@@ -432,7 +472,7 @@ public final class PossessionManager {
 
         SamuelRequiemMod.LOGGER.info(
                 "[Possession] {} cleared possession",
-                player.getGameProfile().getName()
+                player.getName().getString()
         );
     }
 
@@ -440,6 +480,10 @@ public final class PossessionManager {
         PLAYER_POSSESSIONS.remove(player.getUuid());
         LAST_DIMENSION_TYPE.remove(player.getUuid());
         PRE_POSSESSION_STATE.remove(player.getUuid());
+        PossessionHurtSoundHelper.clear(player.getUuid());
+        net.sam.samrequiemmod.possession.passive.SheepAppearanceState.clear(player.getUuid());
+        net.sam.samrequiemmod.possession.passive.PandaAppearanceState.clear(player.getUuid());
+        PossessionDimensionHelper.clearPlayer(player.getUuid());
     }
 
     @Nullable
@@ -455,3 +499,9 @@ public final class PossessionManager {
         }
     }
 }
+
+
+
+
+
+

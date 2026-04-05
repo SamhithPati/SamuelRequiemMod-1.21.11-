@@ -24,3 +24,9 @@ public final class HoglinAttackClientState {
         return (int) Math.ceil(remainingMs / 50.0);
     }
 }
+
+
+
+
+
+

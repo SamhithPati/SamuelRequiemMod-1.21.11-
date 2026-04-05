@@ -9,6 +9,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.mob.EvokerEntity;
 import net.minecraft.entity.mob.IllusionerEntity;
 import net.minecraft.entity.mob.MobEntity;
@@ -16,7 +17,7 @@ import net.minecraft.entity.mob.PillagerEntity;
 import net.minecraft.entity.mob.RavagerEntity;
 import net.minecraft.entity.mob.VindicatorEntity;
 import net.minecraft.entity.mob.WitchEntity;
-import net.minecraft.entity.projectile.thrown.PotionEntity;
+import net.minecraft.entity.projectile.thrown.SplashPotionEntity;
 import net.minecraft.item.BannerItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -26,7 +27,6 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.ActionResult;
-import net.minecraft.util.TypedActionResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 
@@ -57,7 +57,7 @@ public final class CaptainHandler {
 
         // ── Banner equip: right-click on block ────────────────────────────────
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!RavagerRidingHandler.isIllagerPossessed(sp)) return ActionResult.PASS;
             ItemStack held = player.getStackInHand(hand);
@@ -74,30 +74,30 @@ public final class CaptainHandler {
         // ── Banner equip: right-click in air ──────────────────────────────────
         UseItemCallback.EVENT.register((player, world, hand) -> {
             ItemStack held = player.getStackInHand(hand);
-            if (world.isClient) return TypedActionResult.pass(held);
-            if (!(player instanceof ServerPlayerEntity sp)) return TypedActionResult.pass(held);
-            if (!RavagerRidingHandler.isIllagerPossessed(sp)) return TypedActionResult.pass(held);
+            if (world.isClient()) return ActionResult.PASS;
+            if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
+            if (!RavagerRidingHandler.isIllagerPossessed(sp)) return ActionResult.PASS;
 
             // ── Goat horn interception ────────────────────────────────────────
             if (held.isOf(Items.GOAT_HORN)) {
-                if (!CaptainState.isCaptain(sp)) return TypedActionResult.pass(held);
+                if (!CaptainState.isCaptain(sp)) return ActionResult.PASS;
                 handleGoatHornUse(sp);
-                return TypedActionResult.success(held);
+                return ActionResult.SUCCESS;
             }
 
-            if (held.isEmpty() || !(held.getItem() instanceof BannerItem)) return TypedActionResult.pass(held);
+            if (held.isEmpty() || !(held.getItem() instanceof BannerItem)) return ActionResult.PASS;
             ItemStack head = player.getEquippedStack(EquipmentSlot.HEAD);
-            if (!head.isEmpty()) return TypedActionResult.pass(held);
+            if (!head.isEmpty()) return ActionResult.PASS;
             player.equipStack(EquipmentSlot.HEAD, held.copyWithCount(1));
             held.decrement(1);
             world.playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ITEM_ARMOR_EQUIP_GENERIC, SoundCategory.PLAYERS, 1.0f, 1.0f);
-            return TypedActionResult.success(player.getStackInHand(hand));
+            return ActionResult.SUCCESS;
         });
 
         // ── Goat horn on block: also intercept ────────────────────────────────
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!RavagerRidingHandler.isIllagerPossessed(sp)) return ActionResult.PASS;
             ItemStack held = player.getStackInHand(hand);
@@ -116,9 +116,14 @@ public final class CaptainHandler {
 
             // Rally ALL nearby illagers and ravagers (40 block radius)
             Box box = captain.getBoundingBox().expand(40.0);
-            for (MobEntity mob : captain.getServerWorld()
+            for (MobEntity mob : captain.getEntityWorld()
                     .getEntitiesByClass(MobEntity.class, box,
                             m -> PillagerPossessionController.isRallyMob(m) && m.isAlive())) {
+                if (mob instanceof WitchEntity witch) {
+                    witch.setTarget(null);
+                    witch.getNavigation().stop();
+                    continue;
+                }
                 mob.setTarget(target);
             }
 
@@ -155,7 +160,7 @@ public final class CaptainHandler {
     // ── Goat horn usage ───────────────────────────────────────────────────────
 
     private static void handleGoatHornUse(ServerPlayerEntity player) {
-        ServerWorld world = player.getServerWorld();
+        ServerWorld world = player.getEntityWorld();
 
         // Play goat horn sound
         world.playSound(null, player.getX(), player.getY(), player.getZ(),
@@ -185,11 +190,11 @@ public final class CaptainHandler {
     }
 
     private static void summonPillagers(ServerPlayerEntity player) {
-        ServerWorld world = player.getServerWorld();
+        ServerWorld world = player.getEntityWorld();
         UUID captainUuid = player.getUuid();
 
         for (int i = 0; i < 4; i++) {
-            PillagerEntity pillager = EntityType.PILLAGER.create(world);
+            PillagerEntity pillager = EntityType.PILLAGER.create(world, SpawnReason.MOB_SUMMONED);
             if (pillager == null) continue;
 
             // Position in a circle around the player (3-5 blocks out)
@@ -235,7 +240,7 @@ public final class CaptainHandler {
 
     public static void handleRecruitPacket(ServerPlayerEntity player, UUID targetUuid) {
         if (!CaptainState.isCaptain(player)) return;
-        Entity target = player.getServerWorld().getEntity(targetUuid);
+        Entity target = player.getEntityWorld().getEntity(targetUuid);
         if (target == null || !target.isAlive()) return;
 
         // Must be within 6 blocks
@@ -249,7 +254,7 @@ public final class CaptainHandler {
             SummonedPillagerState.removeSummoned(captainUuid, mobUuid);
             CaptainState.removeFollower(captainUuid, mobUuid);
             target.discard();
-            player.getWorld().playSound(null, target.getX(), target.getY(), target.getZ(),
+            player.getEntityWorld().playSound(null, target.getX(), target.getY(), target.getZ(),
                     SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.NEUTRAL, 0.6f, 1.2f);
             // Check if all summoned are gone → start cooldown
             SummonedPillagerState.checkAndStartCooldown(captainUuid, player.age);
@@ -268,12 +273,12 @@ public final class CaptainHandler {
             // Already following — dismiss
             CaptainState.removeFollower(captainUuid, mobUuid);
             WITCH_POTION_COOLDOWN.remove(mobUuid);
-            player.getWorld().playSound(null, target.getX(), target.getY(), target.getZ(),
+            player.getEntityWorld().playSound(null, target.getX(), target.getY(), target.getZ(),
                     SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.NEUTRAL, 0.6f, 0.6f);
         } else {
             // Not following — recruit
             CaptainState.addFollower(captainUuid, mobUuid);
-            player.getWorld().playSound(null, target.getX(), target.getY(), target.getZ(),
+            player.getEntityWorld().playSound(null, target.getX(), target.getY(), target.getZ(),
                     SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.NEUTRAL, 1.0f, 1.2f);
         }
     }
@@ -301,13 +306,13 @@ public final class CaptainHandler {
 
     private static void dismissAllFollowers(ServerPlayerEntity player) {
         // Despawn all summoned pillagers first
-        SummonedPillagerState.despawnAll(player.getUuid(), player.getServerWorld());
+        SummonedPillagerState.despawnAll(player.getUuid(), player.getEntityWorld());
 
         Set<UUID> followers = CaptainState.getFollowers(player.getUuid());
         for (UUID f : new HashSet<>(followers)) {
             WITCH_POTION_COOLDOWN.remove(f);
             // Clear the follower's target so it stops chasing
-            Entity e = player.getServerWorld().getEntity(f);
+            Entity e = player.getEntityWorld().getEntity(f);
             if (e instanceof MobEntity mob) {
                 mob.setTarget(null);
                 mob.getNavigation().stop();
@@ -323,10 +328,17 @@ public final class CaptainHandler {
         Set<UUID> followers = CaptainState.getFollowers(captainUuid);
         if (followers.isEmpty()) return;
 
+        // During an active raid, let vanilla raid AI and RaidHandler drive raider behavior.
+        // Our custom follow/command logic can otherwise pull raiders out of raid aggression.
+        if (hasActiveRaidNearby(captain)) {
+            CaptainState.clearCommandedTarget(captainUuid);
+            return;
+        }
+
         // Check if commanded target is still alive
         UUID targetUuid = CaptainState.getCommandedTarget(captainUuid);
         if (targetUuid != null) {
-            Entity target = captain.getServerWorld().getEntity(targetUuid);
+            Entity target = captain.getEntityWorld().getEntity(targetUuid);
             if (target == null || !target.isAlive() || !(target instanceof LivingEntity)) {
                 CaptainState.clearCommandedTarget(captainUuid);
                 targetUuid = null;
@@ -334,7 +346,7 @@ public final class CaptainHandler {
         }
 
         for (UUID followerUuid : new HashSet<>(followers)) {
-            Entity entity = captain.getServerWorld().getEntity(followerUuid);
+            Entity entity = captain.getEntityWorld().getEntity(followerUuid);
             if (entity == null || !entity.isAlive()) {
                 CaptainState.removeFollower(captainUuid, followerUuid);
                 SummonedPillagerState.removeSummoned(captainUuid, followerUuid);
@@ -364,7 +376,7 @@ public final class CaptainHandler {
     private static void tickCombatFollower(ServerPlayerEntity captain, MobEntity mob, UUID targetUuid) {
         if (targetUuid != null) {
             // Captain has commanded an attack — set target
-            Entity target = captain.getServerWorld().getEntity(targetUuid);
+            Entity target = captain.getEntityWorld().getEntity(targetUuid);
             if (target instanceof LivingEntity le && le.isAlive()) {
                 if (mob.getTarget() != le) mob.setTarget(le);
                 return;
@@ -418,7 +430,7 @@ public final class CaptainHandler {
      * (same algorithm as tamed wolves in vanilla Minecraft).
      */
     private static void tryTeleportToOwner(MobEntity mob, ServerPlayerEntity captain) {
-        ServerWorld world = captain.getServerWorld();
+        ServerWorld world = captain.getEntityWorld();
         // Try 10 random positions in a 7x7 area centered on the captain
         for (int i = 0; i < 10; i++) {
             int dx = mob.getRandom().nextBetween(-3, 3);
@@ -456,7 +468,7 @@ public final class CaptainHandler {
 
         // Check all followers
         for (UUID uuid : allFollowers) {
-            Entity e = captain.getServerWorld().getEntity(uuid);
+            Entity e = captain.getEntityWorld().getEntity(uuid);
             if (e instanceof LivingEntity le && le.isAlive() && le != witch
                     && le.getHealth() < le.getMaxHealth()
                     && witch.squaredDistanceTo(le) < 256.0) {
@@ -466,9 +478,14 @@ public final class CaptainHandler {
         return null;
     }
 
+    private static boolean hasActiveRaidNearby(ServerPlayerEntity captain) {
+        var raid = captain.getEntityWorld().getRaidManager().getRaidAt(captain.getBlockPos(), 9216);
+        return raid != null && raid.isActive() && !raid.hasStopped();
+    }
+
     /** Throws a regen potion from a witch at a target. Package-visible for RaidHandler. */
     static void throwRegenPotion(WitchEntity witch, LivingEntity target) {
-        ServerWorld world = (ServerWorld) witch.getWorld();
+        ServerWorld world = (ServerWorld) witch.getEntityWorld();
 
         // Directly apply regeneration effect to the target (guaranteed to work)
         target.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
@@ -479,7 +496,7 @@ public final class CaptainHandler {
         potionStack.set(DataComponentTypes.POTION_CONTENTS,
                 new PotionContentsComponent(Potions.REGENERATION));
 
-        PotionEntity potionEntity = new PotionEntity(world, witch);
+        SplashPotionEntity potionEntity = new SplashPotionEntity(world, witch, potionStack);
         potionEntity.setItem(potionStack);
 
         double dx = target.getX() - witch.getX();
@@ -499,7 +516,7 @@ public final class CaptainHandler {
     public static void onUnpossess(ServerPlayerEntity player) {
         UUID playerUuid = player.getUuid();
         // Despawn all summoned pillagers from the world
-        SummonedPillagerState.despawnAll(playerUuid, player.getServerWorld());
+        SummonedPillagerState.despawnAll(playerUuid, player.getEntityWorld());
         SummonedPillagerState.clearAll(playerUuid);
         // Clean up follower state
         Set<UUID> followers = CaptainState.getFollowers(playerUuid);
@@ -518,3 +535,11 @@ public final class CaptainHandler {
         CaptainState.clearAll(playerUuid);
     }
 }
+
+
+
+
+
+
+
+

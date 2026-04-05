@@ -46,17 +46,17 @@ public final class FireMobNetworking {
     }
 
     public static void broadcastBlazeAttack(ServerPlayerEntity player, int durationTicks) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         BlazeAttackSyncPayload payload = new BlazeAttackSyncPayload(player.getUuid(), durationTicks);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
 
     public static void broadcastGhastAttack(ServerPlayerEntity player, int durationTicks) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         GhastAttackSyncPayload payload = new GhastAttackSyncPayload(player.getUuid(), durationTicks);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
@@ -121,3 +121,9 @@ public final class FireMobNetworking {
         }
     }
 }
+
+
+
+
+
+

@@ -33,9 +33,9 @@ public final class PufferfishNetworking {
     }
 
     public static void broadcastPuffState(ServerPlayerEntity player, boolean puffed) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         var pkt = new PuffSyncPayload(player.getUuid(), puffed);
-        for (ServerPlayerEntity r : player.getServer().getPlayerManager().getPlayerList())
+        for (ServerPlayerEntity r : player.getEntityWorld().getServer().getPlayerManager().getPlayerList())
             ServerPlayNetworking.send(r, pkt);
     }
 
@@ -59,3 +59,9 @@ public final class PufferfishNetworking {
         public Id<? extends CustomPayload> getId() { return ID; }
     }
 }
+
+
+
+
+
+

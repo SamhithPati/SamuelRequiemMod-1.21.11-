@@ -56,3 +56,8 @@ public final class BabyZombieState {
         return BABY_ZOMBIE_PLAYERS.contains(uuid) || CLIENT_BABY_ZOMBIE_PLAYERS.contains(uuid);
     }
 }
+
+
+
+
+

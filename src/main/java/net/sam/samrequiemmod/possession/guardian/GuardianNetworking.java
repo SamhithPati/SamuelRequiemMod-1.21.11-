@@ -37,9 +37,9 @@ public final class GuardianNetworking {
     }
 
     public static void broadcastBeam(ServerPlayerEntity player, UUID targetUuid, int warmupTicks) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         BeamSyncPayload payload = new BeamSyncPayload(player.getUuid(), Optional.ofNullable(targetUuid), warmupTicks);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
@@ -87,3 +87,9 @@ public final class GuardianNetworking {
         }
     }
 }
+
+
+
+
+
+

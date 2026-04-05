@@ -3,7 +3,7 @@ package net.sam.samrequiemmod.possession.illager;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.UnbreakableComponent;
+import net.minecraft.util.Unit;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
@@ -46,7 +46,7 @@ public final class VindicatorPossessionController {
 
         // ── Attack: mark provoked + rally + custom axe damage ───────────────
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isVindicatorPossessing(sp)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity target)) return ActionResult.PASS;
@@ -62,7 +62,7 @@ public final class VindicatorPossessionController {
                     case HARD   -> 19.0f;  // 9.5 hearts
                     default     -> 13.0f;  // 6.5 hearts (Normal + Peaceful)
                 };
-                target.damage(sp.getDamageSources().playerAttack(sp), axeDmg);
+                target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), sp.getDamageSources().playerAttack(sp), axeDmg);
             }
 
             // Only mark provoked for non-allies
@@ -76,8 +76,9 @@ public final class VindicatorPossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isVindicatorPossessing(player)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_VINDICATOR_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
             ensureAxe(player);
@@ -91,9 +92,14 @@ public final class VindicatorPossessionController {
             if (attacker instanceof LivingEntity livingAttacker) {
                 LAST_ATTACKER.put(player.getUuid(), livingAttacker.getUuid());
                 Box box = player.getBoundingBox().expand(40.0);
-                for (MobEntity mob : player.getServerWorld()
+                for (MobEntity mob : player.getEntityWorld()
                         .getEntitiesByClass(MobEntity.class, box,
                                 m -> PillagerPossessionController.isRallyMob(m) && m.isAlive())) {
+                    if (mob instanceof WitchEntity witch) {
+                        witch.setTarget(null);
+                        witch.getNavigation().stop();
+                        continue;
+                    }
                     mob.setTarget(livingAttacker);
                 }
             }
@@ -104,7 +110,7 @@ public final class VindicatorPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isVindicatorPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_VINDICATOR_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }
@@ -118,7 +124,7 @@ public final class VindicatorPossessionController {
 
         // Ambient sound
         if (player.age % 100 == 0 && player.getRandom().nextFloat() < 0.3f) {
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_VINDICATOR_AMBIENT, SoundCategory.PLAYERS, 1.0f, 1.0f);
         }
 
@@ -137,15 +143,20 @@ public final class VindicatorPossessionController {
     private static void persistRally(ServerPlayerEntity player) {
         UUID attackerUuid = LAST_ATTACKER.get(player.getUuid());
         if (attackerUuid == null) return;
-        Entity e = player.getServerWorld().getEntity(attackerUuid);
+        Entity e = player.getEntityWorld().getEntity(attackerUuid);
         if (!(e instanceof LivingEntity attacker) || !attacker.isAlive()) {
             LAST_ATTACKER.remove(player.getUuid());
             return;
         }
         Box box = player.getBoundingBox().expand(40.0);
-        for (MobEntity ally : player.getServerWorld()
+        for (MobEntity ally : player.getEntityWorld()
                 .getEntitiesByClass(MobEntity.class, box,
                         m -> PillagerPossessionController.isRallyMob(m) && m.isAlive())) {
+            if (ally instanceof WitchEntity witch) {
+                witch.setTarget(null);
+                witch.getNavigation().stop();
+                continue;
+            }
             if (ally.getTarget() == null || !ally.getTarget().isAlive())
                 ally.setTarget(attacker);
         }
@@ -160,7 +171,7 @@ public final class VindicatorPossessionController {
 
         // Unbreakable iron axe
         ItemStack axe = new ItemStack(Items.IRON_AXE);
-        axe.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+        axe.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
 
         // Ominous banner
         ItemStack banner = PillagerPossessionController.createOminousBannerPublic(player);
@@ -252,3 +263,10 @@ public final class VindicatorPossessionController {
         LAST_ATTACK_TICK.remove(uuid);
     }
 }
+
+
+
+
+
+
+

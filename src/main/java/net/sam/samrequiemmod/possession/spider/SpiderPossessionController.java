@@ -43,17 +43,17 @@ public final class SpiderPossessionController {
 
     public static void register() {
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isAnySpiderPossessing(sp)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity target)) return ActionResult.PASS;
             if (player.getMainHandStack().isOf(ModItems.POSSESSION_RELIC)) return ActionResult.PASS;
             if (player.getAttackCooldownProgress(0.5f) < 0.9f) return ActionResult.SUCCESS;
 
-            float damage = getAttackDamage(sp.getServerWorld().getDifficulty(), isCaveSpiderPossessing(sp));
-            boolean damaged = target.damage(sp.getDamageSources().playerAttack(sp), damage);
+            float damage = getAttackDamage(sp.getEntityWorld().getDifficulty(), isCaveSpiderPossessing(sp));
+            boolean damaged = target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), sp.getDamageSources().playerAttack(sp), damage);
             if (damaged && isCaveSpiderPossessing(sp)) {
-                applyCaveSpiderPoison(target, sp.getServerWorld().getDifficulty());
+                applyCaveSpiderPoison(target, sp.getEntityWorld().getDifficulty());
             }
 
             if (entity instanceof MobEntity mob) {
@@ -69,13 +69,14 @@ public final class SpiderPossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isAnySpiderPossessing(player)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
             if (source.equals(player.getDamageSources().magic()) && player.hasStatusEffect(StatusEffects.POISON)) {
                 player.removeStatusEffect(StatusEffects.POISON);
                 return false;
             }
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_SPIDER_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
             Entity attacker = source.getAttacker();
@@ -88,7 +89,7 @@ public final class SpiderPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isAnySpiderPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_SPIDER_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }
@@ -105,7 +106,7 @@ public final class SpiderPossessionController {
     private static void handleAmbientSound(ServerPlayerEntity player) {
         if (player.age % 160 != 0) return;
         if (player.getRandom().nextFloat() >= 0.35f) return;
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_SPIDER_AMBIENT, SoundCategory.HOSTILE, 1.0f, 1.0f);
     }
 
@@ -116,7 +117,7 @@ public final class SpiderPossessionController {
         double upwardVelocity = isCaveSpiderPossessing(player) ? 0.23 : 0.20;
         double vertical = Math.max(player.getVelocity().y, upwardVelocity);
         player.setVelocity(player.getVelocity().x, vertical, player.getVelocity().z);
-        player.velocityModified = true;
+        player.velocityDirty = true;
         player.fallDistance = 0.0f;
     }
 
@@ -186,3 +187,9 @@ public final class SpiderPossessionController {
         // No persistent state yet.
     }
 }
+
+
+
+
+
+

@@ -53,17 +53,17 @@ public final class EvokerNetworking {
     }
 
     public static void broadcastTarget(ServerPlayerEntity player, UUID targetUuid) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         var pkt = new TargetSyncPayload(player.getUuid(), targetUuid);
-        for (ServerPlayerEntity r : player.getServer().getPlayerManager().getPlayerList())
+        for (ServerPlayerEntity r : player.getEntityWorld().getServer().getPlayerManager().getPlayerList())
             ServerPlayNetworking.send(r, pkt);
     }
 
     /** castType: 0=stop, 1=fang, 2=vex */
     public static void broadcastCasting(ServerPlayerEntity player, int castType) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         var pkt = new CastingSyncPayload(player.getUuid(), castType);
-        for (ServerPlayerEntity r : player.getServer().getPlayerManager().getPlayerList())
+        for (ServerPlayerEntity r : player.getEntityWorld().getServer().getPlayerManager().getPlayerList())
             ServerPlayNetworking.send(r, pkt);
     }
 
@@ -131,3 +131,8 @@ public final class EvokerNetworking {
         @Override public Id<? extends CustomPayload> getId() { return ID; }
     }
 }
+
+
+
+
+

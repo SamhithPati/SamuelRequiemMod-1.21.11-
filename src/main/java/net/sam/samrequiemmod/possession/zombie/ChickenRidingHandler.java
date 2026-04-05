@@ -22,7 +22,7 @@ public final class ChickenRidingHandler {
     public static void register() {
         // Block attacking the ridden chicken
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!isBabyUndead(player)) return ActionResult.PASS;
             if (!(entity instanceof ChickenEntity)) return ActionResult.PASS;
             if (player.getVehicle() == entity) return ActionResult.FAIL;
@@ -33,3 +33,8 @@ public final class ChickenRidingHandler {
     // Tick — dismount handled in ChickenEntityMixin$RidingMixin
     public static void tick(ServerPlayerEntity player) {}
 }
+
+
+
+
+

@@ -59,7 +59,7 @@ public final class SlimePossessionController {
 
     public static void register() {
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isAnySlimePossessing(sp)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity target)) return ActionResult.PASS;
@@ -75,7 +75,7 @@ public final class SlimePossessionController {
             float damage = getAttackDamage(sp);
             if (damage <= 0.0f) return ActionResult.SUCCESS;
 
-            boolean damaged = target.damage(sp.getDamageSources().playerAttack(sp), damage);
+            boolean damaged = target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), sp.getDamageSources().playerAttack(sp), damage);
             if (damaged && entity instanceof MobEntity mob && !isSlimeAlly(entity)) {
                 ZombieTargetingState.markProvoked(mob.getUuid(), sp.getUuid());
             }
@@ -97,8 +97,8 @@ public final class SlimePossessionController {
                 return false;
             }
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    getHurtSound(player), SoundCategory.PLAYERS, 1.0f, getPitch(player));
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, getHurtSound(player), getPitch(player));
 
             Entity attacker = source.getAttacker();
             if (attacker instanceof MobEntity mob) {
@@ -113,7 +113,7 @@ public final class SlimePossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isAnySlimePossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     getDeathSound(player), SoundCategory.PLAYERS, 1.0f, getPitch(player));
         });
     }
@@ -148,14 +148,14 @@ public final class SlimePossessionController {
         int spawnCount = 3;
         for (int i = 0; i < spawnCount; i++) {
             SlimeEntity child = isMagmaCubePossessing(player)
-                    ? new MagmaCubeEntity(EntityType.MAGMA_CUBE, player.getServerWorld())
-                    : new SlimeEntity(EntityType.SLIME, player.getServerWorld());
+                    ? new MagmaCubeEntity(EntityType.MAGMA_CUBE, player.getEntityWorld())
+                    : new SlimeEntity(EntityType.SLIME, player.getEntityWorld());
             child.setSize(nextSize, true);
             double offsetX = ((i % 2) - 0.5) * 1.2;
             double offsetZ = ((i / 2) - 0.5) * 1.2;
             child.refreshPositionAndAngles(player.getX() + offsetX, player.getY(), player.getZ() + offsetZ,
                     player.getYaw(), 0.0f);
-            player.getServerWorld().spawnEntity(child);
+            player.getEntityWorld().spawnEntity(child);
         }
 
         SlimeSizeState.setServerSize(player.getUuid(), nextSize);
@@ -163,8 +163,7 @@ public final class SlimePossessionController {
         PossessionEffects.apply(player);
         player.calculateDimensions();
         player.setHealth(player.getMaxHealth());
-        player.timeUntilRegen = 0;
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 getJumpSound(player, nextSize), SoundCategory.PLAYERS, 1.0f, getPitch(player));
         return true;
     }
@@ -209,28 +208,28 @@ public final class SlimePossessionController {
         boolean magmaCube = isMagmaCubePossessing(player);
         int size = getSize(player);
         return switch (size) {
-            case SlimeSizeState.BIG -> magmaCube ? switch (player.getServerWorld().getDifficulty()) {
+            case SlimeSizeState.BIG -> magmaCube ? switch (player.getEntityWorld().getDifficulty()) {
                 case EASY -> 4.0f;
                 case NORMAL -> 6.0f;
                 case HARD -> 9.0f;
                 default -> 6.0f;
-            } : switch (player.getServerWorld().getDifficulty()) {
+            } : switch (player.getEntityWorld().getDifficulty()) {
                 case EASY -> 3.0f;
                 case NORMAL -> 4.0f;
                 case HARD -> 6.0f;
                 default -> 4.0f;
             };
-            case SlimeSizeState.MEDIUM -> magmaCube ? switch (player.getServerWorld().getDifficulty()) {
+            case SlimeSizeState.MEDIUM -> magmaCube ? switch (player.getEntityWorld().getDifficulty()) {
                 case EASY -> 3.0f;
                 case NORMAL -> 4.0f;
                 case HARD -> 6.0f;
                 default -> 4.0f;
-            } : switch (player.getServerWorld().getDifficulty()) {
+            } : switch (player.getEntityWorld().getDifficulty()) {
                 case EASY, NORMAL -> 2.0f;
                 case HARD -> 3.0f;
                 default -> 2.0f;
             };
-            case SlimeSizeState.SMALL -> magmaCube ? switch (player.getServerWorld().getDifficulty()) {
+            case SlimeSizeState.SMALL -> magmaCube ? switch (player.getEntityWorld().getDifficulty()) {
                 case EASY -> 2.0f;
                 case NORMAL -> 3.0f;
                 case HARD -> 4.5f;
@@ -243,16 +242,16 @@ public final class SlimePossessionController {
     private static void handleAmbientSound(ServerPlayerEntity player) {
         if (player.age % 110 != 0) return;
         if (player.getRandom().nextFloat() >= 0.45f) return;
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 getAmbientSound(player), SoundCategory.HOSTILE, 0.9f, getPitch(player));
     }
 
     private static void aggroIronGolems(ServerPlayerEntity player) {
         if (player.age % 10 != 0) return;
         Box box = player.getBoundingBox().expand(24.0);
-        for (IronGolemEntity golem : player.getWorld().getEntitiesByClass(IronGolemEntity.class, box, IronGolemEntity::isAlive)) {
+        for (IronGolemEntity golem : player.getEntityWorld().getEntitiesByClass(IronGolemEntity.class, box, IronGolemEntity::isAlive)) {
             golem.setTarget(player);
-            golem.setAngryAt(player.getUuid());
+            golem.setAngryAt(net.minecraft.entity.LazyEntityReference.of(player));
         }
     }
 
@@ -277,7 +276,7 @@ public final class SlimePossessionController {
 
     public static void playJumpSound(PlayerEntity player) {
         int size = getSize(player);
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 getJumpSound(player, size), SoundCategory.PLAYERS, 0.8f, getPitch(player));
     }
 
@@ -287,7 +286,7 @@ public final class SlimePossessionController {
     }
 
     private static void playAttackSound(ServerPlayerEntity player) {
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 isMagmaCubePossessing(player) ? SoundEvents.ENTITY_MAGMA_CUBE_SQUISH : SoundEvents.ENTITY_SLIME_ATTACK,
                 SoundCategory.PLAYERS, 0.9f, getPitch(player));
     }
@@ -319,3 +318,9 @@ public final class SlimePossessionController {
         };
     }
 }
+
+
+
+
+
+

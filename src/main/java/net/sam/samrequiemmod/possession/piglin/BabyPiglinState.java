@@ -34,3 +34,9 @@ public final class BabyPiglinState {
         return SERVER.contains(uuid) || CLIENT.contains(uuid);
     }
 }
+
+
+
+
+
+

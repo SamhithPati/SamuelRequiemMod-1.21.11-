@@ -18,3 +18,9 @@ public interface TropicalFishEntityVariantAccessor {
         throw new AssertionError();
     }
 }
+
+
+
+
+
+

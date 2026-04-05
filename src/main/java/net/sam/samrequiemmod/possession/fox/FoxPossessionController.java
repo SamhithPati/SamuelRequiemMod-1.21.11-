@@ -40,7 +40,7 @@ public final class FoxPossessionController {
 
     public static void register() {
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isFoxPossessing(sp)) return ActionResult.PASS;
             if (player.getMainHandStack().isOf(ModItems.POSSESSION_RELIC)) return ActionResult.PASS;
@@ -48,12 +48,12 @@ public final class FoxPossessionController {
             if (!(entity instanceof LivingEntity target)) return ActionResult.PASS;
             if (player.getAttackCooldownProgress(0.5f) < 0.9f) return ActionResult.SUCCESS;
 
-            target.damage(sp.getDamageSources().playerAttack(sp), 2.0f);
+            target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), sp.getDamageSources().playerAttack(sp), 2.0f);
             if (entity instanceof MobEntity mob && !isFoxThreat(entity)) {
                 ZombieTargetingState.markProvoked(mob.getUuid(), sp.getUuid());
             }
             sp.swingHand(hand, true);
-            sp.getWorld().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
+            sp.getEntityWorld().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
                     SoundEvents.ENTITY_FOX_BITE, SoundCategory.PLAYERS, 1.0f, getPitch(sp));
             return ActionResult.SUCCESS;
         });
@@ -61,8 +61,9 @@ public final class FoxPossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isFoxPossessing(player)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_FOX_HURT, SoundCategory.PLAYERS, 1.0f, getPitch(player));
 
             if (source.getAttacker() instanceof MobEntity mob) {
@@ -74,7 +75,7 @@ public final class FoxPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isFoxPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_FOX_DEATH, SoundCategory.PLAYERS, 1.0f, getPitch(player));
         });
     }
@@ -131,12 +132,12 @@ public final class FoxPossessionController {
     private static void handleFoxPredators(ServerPlayerEntity player) {
         if (player.age % 10 != 0) return;
         Box box = player.getBoundingBox().expand(20.0);
-        for (WolfEntity wolf : player.getServerWorld().getEntitiesByClass(WolfEntity.class, box, WolfEntity::isAlive)) {
+        for (WolfEntity wolf : player.getEntityWorld().getEntitiesByClass(WolfEntity.class, box, WolfEntity::isAlive)) {
             wolf.setTarget(player);
-            wolf.setAngryAt(player.getUuid());
-            wolf.setAngerTime(200);
+            wolf.setAngryAt(net.minecraft.entity.LazyEntityReference.of(player));
+            wolf.setAngerDuration(200L);
         }
-        for (PolarBearEntity polarBear : player.getServerWorld().getEntitiesByClass(PolarBearEntity.class, box, PolarBearEntity::isAlive)) {
+        for (PolarBearEntity polarBear : player.getEntityWorld().getEntitiesByClass(PolarBearEntity.class, box, PolarBearEntity::isAlive)) {
             polarBear.setTarget(player);
             polarBear.setAttacker(player);
         }
@@ -154,7 +155,7 @@ public final class FoxPossessionController {
     private static void handleAmbientSound(ServerPlayerEntity player) {
         if (player.age % 140 != 0) return;
         if (player.getRandom().nextFloat() >= 0.4f) return;
-        player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+        player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_FOX_AMBIENT, SoundCategory.PLAYERS, 1.0f, getPitch(player));
     }
 
@@ -162,3 +163,9 @@ public final class FoxPossessionController {
         return isBabyFoxPossessing(player) ? 1.35f : 1.0f;
     }
 }
+
+
+
+
+
+

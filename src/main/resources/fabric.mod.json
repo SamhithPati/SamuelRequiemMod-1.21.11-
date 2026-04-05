@@ -2,8 +2,8 @@
 	"schemaVersion": 1,
 	"id": "samrequiemmod",
 	"version": "${version}",
-	"name": "SamuelRequiemMod",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"name": "S4mu's Possession",
+	"description": "Harness forbidden soul magic to possess mobs and wield their bodies, powers, and instincts as your own.",
 	"authors": [
 		"Me!"
 	],
@@ -30,9 +30,10 @@
 		"samrequiemmod.mixins.json"
 	],
 	"depends": {
-		"fabricloader": ">=0.18.4",
-		"minecraft": "~1.21",
+		"fabricloader": ">=0.18.5",
+		"minecraft": "~1.21.11",
 		"java": ">=21",
-		"fabric-api": "*"
+		"fabric-api": "*",
+		"geckolib": "*"
 	}
 }

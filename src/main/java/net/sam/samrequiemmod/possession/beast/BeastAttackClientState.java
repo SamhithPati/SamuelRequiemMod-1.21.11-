@@ -29,3 +29,9 @@ public final class BeastAttackClientState {
         POLAR_ATTACK_START.remove(uuid);
     }
 }
+
+
+
+
+
+

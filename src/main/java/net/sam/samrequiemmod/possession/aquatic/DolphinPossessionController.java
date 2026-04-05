@@ -61,7 +61,7 @@ public final class DolphinPossessionController {
 
         // ── Left-click: difficulty-scaled melee damage ──────────────────────
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isDolphinPossessing(sp)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity target)) return ActionResult.PASS;
@@ -73,7 +73,7 @@ public final class DolphinPossessionController {
                 default   -> 3.0f;       // 1.5 hearts (Normal + Peaceful)
             };
 
-            target.damage(sp.getDamageSources().playerAttack(sp), damage);
+            target.damage(((net.minecraft.server.world.ServerWorld) target.getEntityWorld()), sp.getDamageSources().playerAttack(sp), damage);
 
             // Play dolphin attack sound
             world.playSound(null, sp.getX(), sp.getY(), sp.getZ(),
@@ -91,9 +91,10 @@ public final class DolphinPossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isDolphinPossessing(player)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
             // Play hurt sound
-            player.getWorld().playSound(null,
+            player.getEntityWorld().playSound(null,
                     player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_DOLPHIN_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
@@ -170,7 +171,7 @@ public final class DolphinPossessionController {
 
         // After 2 minutes on land, start taking damage (1 HP per second)
         if (ticks > LAND_GRACE_PERIOD && player.age % 20 == 0) {
-            player.damage(player.getDamageSources().dryOut(), 1.0f);
+            player.damage(player.getEntityWorld(), player.getDamageSources().dryOut(), 1.0f);
         }
     }
 
@@ -178,7 +179,7 @@ public final class DolphinPossessionController {
 
     private static void rallyDolphins(ServerPlayerEntity player, LivingEntity attacker) {
         Box box = player.getBoundingBox().expand(20.0);
-        for (DolphinEntity dolphin : player.getServerWorld()
+        for (DolphinEntity dolphin : player.getEntityWorld()
                 .getEntitiesByClass(DolphinEntity.class, box, d -> d.isAlive())) {
             if (dolphin.getTarget() == null || !dolphin.getTarget().isAlive()) {
                 dolphin.setTarget(attacker);
@@ -197,7 +198,7 @@ public final class DolphinPossessionController {
         // Find the attacker in the world
         Box searchBox = player.getBoundingBox().expand(20.0);
         LivingEntity attacker = null;
-        for (LivingEntity le : player.getServerWorld()
+        for (LivingEntity le : player.getEntityWorld()
                 .getEntitiesByClass(LivingEntity.class, searchBox,
                         e -> e.getUuid().equals(attackerUuid) && e.isAlive())) {
             attacker = le;
@@ -210,7 +211,7 @@ public final class DolphinPossessionController {
         }
 
         // Keep rallying dolphins
-        for (DolphinEntity dolphin : player.getServerWorld()
+        for (DolphinEntity dolphin : player.getEntityWorld()
                 .getEntitiesByClass(DolphinEntity.class, searchBox, d -> d.isAlive())) {
             if (dolphin.getTarget() == null || !dolphin.getTarget().isAlive()) {
                 dolphin.setTarget(attacker);
@@ -224,7 +225,7 @@ public final class DolphinPossessionController {
         if (player.age % 160 != 0) return;
         if (player.getRandom().nextFloat() >= 0.3f) return;
 
-        player.getWorld().playSound(null,
+        player.getEntityWorld().playSound(null,
                 player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_DOLPHIN_AMBIENT, SoundCategory.PLAYERS, 1.0f, 1.0f);
     }
@@ -248,3 +249,9 @@ public final class DolphinPossessionController {
         LAST_ATTACKER.remove(uuid);
     }
 }
+
+
+
+
+
+

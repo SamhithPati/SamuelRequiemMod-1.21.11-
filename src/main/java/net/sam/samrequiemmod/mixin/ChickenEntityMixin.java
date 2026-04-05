@@ -38,13 +38,13 @@ public class ChickenEntityMixin {
         @Inject(method = "interactMob", at = @At("HEAD"), cancellable = true)
         private void samrequiemmod$mount(PlayerEntity player, Hand hand,
                                          CallbackInfoReturnable<ActionResult> cir) {
-            if (player.getWorld().isClient) return;
+            if (player.getEntityWorld().isClient()) return;
             MobEntity self = (MobEntity)(Object)this;
             if (!(self instanceof ChickenEntity chicken)) return;
             if (!ChickenRidingHandler.isBabyUndead(player)) return;
             if (player.getVehicle() == chicken) return;
             if (player.hasVehicle()) player.stopRiding();
-            player.startRiding(chicken, true);
+            player.startRiding(chicken, true, false);
             cir.setReturnValue(ActionResult.SUCCESS);
         }
     }
@@ -89,7 +89,7 @@ public class ChickenEntityMixin {
         private void samrequiemmod$sneakDismount(CallbackInfo ci) {
             Entity self = (Entity)(Object)this;
             if (!(self instanceof ChickenEntity chicken)) return;
-            if (self.getWorld().isClient) return;
+            if (self.getEntityWorld().isClient()) return;
             Entity first = chicken.getFirstPassenger();
             if (!(first instanceof ServerPlayerEntity rider)) return;
             if (!ChickenRidingHandler.isBabyUndead(rider)) return;
@@ -105,7 +105,7 @@ public class ChickenEntityMixin {
         private void samrequiemmod$travel(Vec3d input, CallbackInfo ci) {
             LivingEntity self = (LivingEntity)(Object)this;
             if (!(self instanceof ChickenEntity chicken)) return;
-            if (self.getWorld().isClient) return;
+            if (self.getEntityWorld().isClient()) return;
             Entity first = chicken.getFirstPassenger();
             if (!(first instanceof ServerPlayerEntity rider)) return;
             if (!ChickenRidingHandler.isBabyUndead(rider)) return;
@@ -117,8 +117,8 @@ public class ChickenEntityMixin {
             chicken.headYaw = yaw;
             chicken.bodyYaw = yaw;
 
-            float fwd    = rider.forwardSpeed;
-            float strafe = rider.sidewaysSpeed;
+            float fwd = net.sam.samrequiemmod.possession.MountedPlayerInputHelper.getForwardInput(rider);
+            float strafe = net.sam.samrequiemmod.possession.MountedPlayerInputHelper.getStrafeInput(rider);
             double speed = 0.2;
             double rad   = Math.toRadians(yaw);
             double dx    = (-Math.sin(rad) * fwd + Math.cos(rad) * strafe) * speed;
@@ -137,7 +137,7 @@ public class ChickenEntityMixin {
             }
 
             chicken.setVelocity(dx, vy, dz);
-            chicken.velocityModified = true;
+            chicken.velocityDirty = true;
 
             chicken.move(net.minecraft.entity.MovementType.SELF, chicken.getVelocity());
             chicken.setVelocity(chicken.getVelocity().multiply(0.91, 0.98, 0.91));
@@ -145,3 +145,9 @@ public class ChickenEntityMixin {
         }
     }
 }
+
+
+
+
+
+

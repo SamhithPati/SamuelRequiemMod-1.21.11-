@@ -35,9 +35,9 @@ public final class WitherSkeletonAttackNetworking {
     }
 
     public static void broadcastAttacking(ServerPlayerEntity player, boolean attacking) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         var pkt = new Payload(player.getUuid(), attacking);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, pkt);
         }
     }
@@ -61,3 +61,9 @@ public final class WitherSkeletonAttackNetworking {
         public Id<? extends CustomPayload> getId() { return ID; }
     }
 }
+
+
+
+
+
+

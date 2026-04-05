@@ -7,8 +7,14 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(RabbitEntity.class)
 public interface RabbitEntityVariantAccessor {
-    @Accessor("RABBIT_TYPE")
+    @Accessor("VARIANT")
     static TrackedData<Integer> getVariantKey() {
         throw new AssertionError();
     }
 }
+
+
+
+
+
+

@@ -69,3 +69,9 @@ public final class SilverfishHideClientHandler {
                 || state.isOf(Blocks.DEEPSLATE);
     }
 }
+
+
+
+
+
+

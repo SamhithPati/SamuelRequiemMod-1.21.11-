@@ -4,8 +4,8 @@ import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.TypedActionResult;
 import net.sam.samrequiemmod.item.ModItems;
 
 public final class RelicUnpossessHandler {
@@ -17,39 +17,33 @@ public final class RelicUnpossessHandler {
         UseItemCallback.EVENT.register((player, world, hand) -> {
             ItemStack stack = player.getStackInHand(hand);
 
-            if (world.isClient) {
-                return TypedActionResult.pass(stack);
+            if (world.isClient()) {
+                return ActionResult.PASS;
             }
 
             if (!(player instanceof ServerPlayerEntity serverPlayer)) {
-                return TypedActionResult.pass(stack);
+                return ActionResult.PASS;
             }
 
-            if (hand != Hand.MAIN_HAND) {
-                return TypedActionResult.pass(stack);
-            }
-
-            if (player.isSneaking()) {
-                return TypedActionResult.pass(stack);
-            }
-
-            if (!stack.isOf(ModItems.POSSESSION_RELIC)) {
-                return TypedActionResult.pass(stack);
-            }
-
-            if (!player.isSneaking()) {
-                return TypedActionResult.pass(stack);
+            if (hand != Hand.MAIN_HAND || !stack.isOf(ModItems.POSSESSION_RELIC) || !player.isSneaking()) {
+                return ActionResult.PASS;
             }
 
             if (!PossessionManager.isPossessing(serverPlayer)) {
-                serverPlayer.sendMessage(Text.literal("§eYou are not currently possessing anything."), true);
-                return TypedActionResult.fail(stack);
+                serverPlayer.sendMessage(Text.literal("You are not currently possessing anything."), true);
+                return ActionResult.FAIL;
             }
 
             PossessionManager.clearPossession(serverPlayer);
-
-            serverPlayer.sendMessage(Text.literal("§aYou returned to your normal body."), true);
-            return TypedActionResult.success(stack);
+            serverPlayer.sendMessage(Text.literal("You returned to your normal body."), true);
+            return ActionResult.SUCCESS;
         });
     }
 }
+
+
+
+
+
+
+

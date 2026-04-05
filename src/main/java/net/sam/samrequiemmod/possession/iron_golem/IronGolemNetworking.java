@@ -44,9 +44,9 @@ public final class IronGolemNetworking {
 
     /** Broadcast attack animation to all clients. */
     public static void broadcastAttack(ServerPlayerEntity player) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         var pkt = new AttackSyncPayload(player.getUuid(), player.age);
-        for (ServerPlayerEntity r : player.getServer().getPlayerManager().getPlayerList())
+        for (ServerPlayerEntity r : player.getEntityWorld().getServer().getPlayerManager().getPlayerList())
             ServerPlayNetworking.send(r, pkt);
     }
 
@@ -83,3 +83,9 @@ public final class IronGolemNetworking {
         @Override public Id<? extends CustomPayload> getId() { return ID; }
     }
 }
+
+
+
+
+
+

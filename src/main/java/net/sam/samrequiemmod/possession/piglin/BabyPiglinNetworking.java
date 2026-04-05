@@ -42,9 +42,9 @@ public final class BabyPiglinNetworking {
     }
 
     public static void broadcast(ServerPlayerEntity player, boolean isBaby) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         var pkt = new Payload(player.getUuid(), isBaby);
-        for (ServerPlayerEntity r : player.getServer().getPlayerManager().getPlayerList())
+        for (ServerPlayerEntity r : player.getEntityWorld().getServer().getPlayerManager().getPlayerList())
             ServerPlayNetworking.send(r, pkt);
     }
 
@@ -57,3 +57,9 @@ public final class BabyPiglinNetworking {
         @Override public Id<? extends CustomPayload> getId() { return ID; }
     }
 }
+
+
+
+
+
+

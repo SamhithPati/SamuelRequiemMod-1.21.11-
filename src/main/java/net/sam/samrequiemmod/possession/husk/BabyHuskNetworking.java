@@ -44,9 +44,9 @@ public final class BabyHuskNetworking {
     }
 
     public static void broadcastBabyHuskSync(ServerPlayerEntity player, boolean isBaby) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         var pkt = new BabyHuskPayload(player.getUuid(), isBaby);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, pkt);
         }
     }
@@ -66,3 +66,8 @@ public final class BabyHuskNetworking {
         @Override public Id<? extends CustomPayload> getId() { return ID; }
     }
 }
+
+
+
+
+

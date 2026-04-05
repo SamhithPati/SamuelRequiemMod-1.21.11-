@@ -1,8 +1,8 @@
 package net.sam.samrequiemmod.possession.drowned;
 
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.util.Unit;
 import net.minecraft.component.type.NbtComponent;
-import net.minecraft.component.type.UnbreakableComponent;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
@@ -28,12 +28,11 @@ public final class DrownedTridentManager {
         ItemStack trident = new ItemStack(Items.TRIDENT);
 
         // Unbreakable — show tooltip
-        trident.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(false));
+        trident.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
 
         // Loyalty III — returns after throwing
-        var enchReg = player.getServerWorld().getRegistryManager().get(RegistryKeys.ENCHANTMENT);
-        var loyalty = enchReg.getEntry(Enchantments.LOYALTY);
-        loyalty.ifPresent(e -> trident.addEnchantment(e, 3));
+        var enchReg = player.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
+        trident.addEnchantment(enchReg.getOrThrow(Enchantments.LOYALTY), 3);
 
         // Mark as our drowned trident
         NbtCompound nbt = new NbtCompound();
@@ -63,7 +62,7 @@ public final class DrownedTridentManager {
     public static boolean isDrownedTrident(ItemStack stack) {
         if (!stack.isOf(Items.TRIDENT)) return false;
         NbtComponent data = stack.get(DataComponentTypes.CUSTOM_DATA);
-        return data != null && data.contains(TAG);
+        return data != null && data.copyNbt().contains(TAG);
     }
 
     public static boolean hasDrownedTrident(PlayerEntity player) {
@@ -94,3 +93,10 @@ public final class DrownedTridentManager {
         }
     }
 }
+
+
+
+
+
+
+

@@ -42,9 +42,9 @@ public final class MooshroomNetworking {
     // ── Broadcast color state to all clients ────────────────────────────
 
     public static void broadcastColorSync(ServerPlayerEntity player, boolean isBrown) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         var pkt = new ColorSyncPayload(player.getUuid(), isBrown);
-        for (ServerPlayerEntity r : player.getServer().getPlayerManager().getPlayerList())
+        for (ServerPlayerEntity r : player.getEntityWorld().getServer().getPlayerManager().getPlayerList())
             ServerPlayNetworking.send(r, pkt);
     }
 
@@ -68,3 +68,9 @@ public final class MooshroomNetworking {
         @Override public Id<? extends CustomPayload> getId() { return ID; }
     }
 }
+
+
+
+
+
+

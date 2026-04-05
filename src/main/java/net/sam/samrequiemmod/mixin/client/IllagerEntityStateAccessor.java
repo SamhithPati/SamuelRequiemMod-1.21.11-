@@ -23,10 +23,11 @@ public abstract class IllagerEntityStateAccessor implements net.sam.samrequiemmo
             Class<?> cls = IllagerEntity.class;
             // Find the State inner enum
             Class<?> stateClass = IllagerEntity.State.class;
-            // Find setState by scanning all declared methods for one taking a single State param
+            // Find vanilla's hidden state setter, not our injected bridge method.
             for (java.lang.reflect.Method m : cls.getDeclaredMethods()) {
                 Class<?>[] params = m.getParameterTypes();
-                if (params.length == 1 && params[0] == stateClass) {
+                if (m.getName().startsWith("samrequiemmod$")) continue;
+                if (params.length == 1 && params[0] == stateClass && m.getReturnType() == Void.TYPE) {
                     m.setAccessible(true);
                     samrequiemmod$setStateMethod = m;
                     break;
@@ -49,3 +50,9 @@ public abstract class IllagerEntityStateAccessor implements net.sam.samrequiemmo
         }
     }
 }
+
+
+
+
+
+

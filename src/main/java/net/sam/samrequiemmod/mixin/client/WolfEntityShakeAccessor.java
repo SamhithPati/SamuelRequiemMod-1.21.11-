@@ -22,3 +22,9 @@ public interface WolfEntityShakeAccessor {
     @Accessor("lastShakeProgress")
     void setLastShakeProgress(float lastShakeProgress);
 }
+
+
+
+
+
+

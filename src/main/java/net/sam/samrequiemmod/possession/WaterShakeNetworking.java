@@ -38,9 +38,9 @@ public final class WaterShakeNetworking {
     }
 
     public static void broadcast(ServerPlayerEntity player, boolean shaking) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         var pkt = new Payload(player.getUuid(), shaking);
-        for (ServerPlayerEntity r : player.getServer().getPlayerManager().getPlayerList())
+        for (ServerPlayerEntity r : player.getEntityWorld().getServer().getPlayerManager().getPlayerList())
             ServerPlayNetworking.send(r, pkt);
     }
 
@@ -53,3 +53,8 @@ public final class WaterShakeNetworking {
         @Override public Id<? extends CustomPayload> getId() { return TYPE; }
     }
 }
+
+
+
+
+

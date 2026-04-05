@@ -47,7 +47,7 @@ public final class SquidPossessionController {
 
         // Block all melee attacks
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isSquidPossessing(sp)) return ActionResult.PASS;
             if (player.getMainHandStack().isOf(ModItems.POSSESSION_RELIC)) return ActionResult.PASS;
@@ -58,14 +58,15 @@ public final class SquidPossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isSquidPossessing(player)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
             // Play squid hurt sound
-            player.getWorld().playSound(null,
+            player.getEntityWorld().playSound(null,
                     player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_SQUID_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
             // Squirt ink particles (like vanilla squid when damaged)
-            if (player.getWorld() instanceof ServerWorld serverWorld) {
+            if (player.getEntityWorld() instanceof ServerWorld serverWorld) {
                 serverWorld.spawnParticles(ParticleTypes.SQUID_INK,
                         player.getX(), player.getBodyY(0.5), player.getZ(),
                         30, // count
@@ -113,7 +114,7 @@ public final class SquidPossessionController {
 
             // 300 ticks = 15 seconds before drowning starts
             if (ticks > 300 && ticks % 20 == 0) {
-                player.damage(player.getDamageSources().drown(), 2.0f);
+                player.damage(player.getEntityWorld(), player.getDamageSources().drown(), 2.0f);
             }
 
             // Visually drain the air bar
@@ -143,7 +144,7 @@ public final class SquidPossessionController {
         if (player.age % 200 != 0) return;
         if (player.getRandom().nextFloat() >= 0.4f) return;
 
-        player.getWorld().playSound(null,
+        player.getEntityWorld().playSound(null,
                 player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_SQUID_AMBIENT, SoundCategory.PLAYERS, 1.0f, 1.0f);
     }
@@ -161,3 +162,9 @@ public final class SquidPossessionController {
         OUT_OF_WATER_TICKS.remove(uuid);
     }
 }
+
+
+
+
+
+

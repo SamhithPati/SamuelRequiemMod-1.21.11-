@@ -95,9 +95,9 @@ public final class EndermanNetworking {
     // ── Broadcast angry state to all clients ────────────────────────────────
 
     public static void broadcastAngry(ServerPlayerEntity player, boolean angry) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         var pkt = new AngrySyncPayload(player.getUuid(), angry);
-        for (ServerPlayerEntity r : player.getServer().getPlayerManager().getPlayerList())
+        for (ServerPlayerEntity r : player.getEntityWorld().getServer().getPlayerManager().getPlayerList())
             ServerPlayNetworking.send(r, pkt);
     }
 
@@ -157,3 +157,9 @@ public final class EndermanNetworking {
         @Override public Id<? extends CustomPayload> getId() { return ID; }
     }
 }
+
+
+
+
+
+

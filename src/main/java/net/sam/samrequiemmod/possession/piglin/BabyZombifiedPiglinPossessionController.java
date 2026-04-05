@@ -12,7 +12,7 @@ import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.mob.ZombifiedPiglinEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.UnbreakableComponent;
+import net.minecraft.util.Unit;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -54,17 +54,15 @@ public final class BabyZombifiedPiglinPossessionController {
 
         // ── Attack ────────────────────────────────────────────────────────────
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isBabyZombifiedPiglinPossessing(sp)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity livingTarget)) return ActionResult.PASS;
             if (player.getMainHandStack().isOf(ModItems.POSSESSION_RELIC)) return ActionResult.PASS;
-            if (player.getAttackCooldownProgress(0.5f) < 0.9f) return ActionResult.SUCCESS;
-
             // Zombified piglins always passive
             if (entity instanceof ZombifiedPiglinEntity) {
                 float damage = calculateDamage(sp);
-                livingTarget.damage(sp.getDamageSources().playerAttack(sp), damage);
+                livingTarget.damage(((net.minecraft.server.world.ServerWorld) livingTarget.getEntityWorld()), sp.getDamageSources().playerAttack(sp), damage);
                 LAST_HIT_TICK.put(sp.getUuid(), (long) sp.age);
                 ZombieAttackSyncNetworking.broadcastZombieAttacking(sp, true);
                 sp.swingHand(hand, true);
@@ -75,7 +73,7 @@ public final class BabyZombifiedPiglinPossessionController {
                 ZombieTargetingState.markProvoked(mob.getUuid());
 
             float damage = calculateDamage(sp);
-            boolean damaged = livingTarget.damage(sp.getDamageSources().playerAttack(sp), damage);
+            boolean damaged = livingTarget.damage(((net.minecraft.server.world.ServerWorld) livingTarget.getEntityWorld()), sp.getDamageSources().playerAttack(sp), damage);
 
             if (damaged) {
                 world.playSound(null, sp.getX(), sp.getY(), sp.getZ(),
@@ -105,8 +103,8 @@ public final class BabyZombifiedPiglinPossessionController {
             Entity attacker = source.getAttacker();
             if (attacker instanceof net.minecraft.entity.mob.SlimeEntity) return true;
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_ZOMBIFIED_PIGLIN_HURT, SoundCategory.PLAYERS, 1.0f, 1.6f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_ZOMBIFIED_PIGLIN_HURT, 1.6f);
 
             if (attacker == null) return true;
 
@@ -121,7 +119,7 @@ public final class BabyZombifiedPiglinPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isBabyZombifiedPiglinPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_ZOMBIFIED_PIGLIN_DEATH, SoundCategory.PLAYERS, 1.0f, 1.6f);
         });
     }
@@ -147,7 +145,7 @@ public final class BabyZombifiedPiglinPossessionController {
 
         // Baby zombified piglin ambient (higher pitch)
         if (player.age % 160 == 0 && player.getRandom().nextFloat() < 0.45f) {
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_ZOMBIFIED_PIGLIN_AMBIENT, SoundCategory.HOSTILE, 1.0f, 1.6f);
         }
     }
@@ -155,7 +153,7 @@ public final class BabyZombifiedPiglinPossessionController {
     // ── Damage ────────────────────────────────────────────────────────────────
     private static float calculateDamage(ServerPlayerEntity player) {
         ItemStack held = player.getMainHandStack();
-        Difficulty diff = player.getServerWorld().getDifficulty();
+        Difficulty diff = player.getEntityWorld().getDifficulty();
         // Golden sword: custom damage
         if (held.isOf(Items.GOLDEN_SWORD)) {
             return switch (diff) {
@@ -175,7 +173,7 @@ public final class BabyZombifiedPiglinPossessionController {
             };
         }
         // Better weapons use vanilla damage
-        double attr = player.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE);
+        double attr = player.getAttributeValue(EntityAttributes.ATTACK_DAMAGE);
         if (attr > 2.0) return (float) attr;
         // Bare hands
         return switch (diff) {
@@ -205,9 +203,9 @@ public final class BabyZombifiedPiglinPossessionController {
         }
 
         ItemStack sword = new ItemStack(Items.GOLDEN_SWORD);
-        sword.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+        sword.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
         ItemStack axe = new ItemStack(Items.GOLDEN_AXE);
-        axe.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+        axe.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
 
         if (player.getInventory().getStack(0).isEmpty())
             player.getInventory().setStack(0, sword);
@@ -223,7 +221,7 @@ public final class BabyZombifiedPiglinPossessionController {
         for (int i = 0; i < player.getInventory().size(); i++) {
             ItemStack s = player.getInventory().getStack(i);
             if (s.isOf(item) && !s.contains(DataComponentTypes.UNBREAKABLE))
-                s.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+                s.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
         }
     }
 
@@ -247,3 +245,11 @@ public final class BabyZombifiedPiglinPossessionController {
         ITEMS_GIVEN.remove(uuid);
     }
 }
+
+
+
+
+
+
+
+

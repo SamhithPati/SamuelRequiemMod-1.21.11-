@@ -44,7 +44,7 @@ public final class BabyPiglinPossessionController {
 
         // ── Attack: baby piglins CANNOT melee — block all attacks ─────────────
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isBabyPiglinPossessing(sp)) return ActionResult.PASS;
             if (player.getMainHandStack().isOf(ModItems.POSSESSION_RELIC)) return ActionResult.PASS;
@@ -60,8 +60,8 @@ public final class BabyPiglinPossessionController {
             Entity attacker = source.getAttacker();
             if (attacker instanceof net.minecraft.entity.mob.SlimeEntity) return true;
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_PIGLIN_HURT, SoundCategory.PLAYERS, 1.0f, 1.5f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_PIGLIN_HURT, 1.5f);
 
             if (attacker == null || PiglinPossessionController.isPiglinAlly(attacker)) return true;
 
@@ -79,7 +79,7 @@ public final class BabyPiglinPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isBabyPiglinPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_PIGLIN_DEATH, SoundCategory.PLAYERS, 1.0f, 1.5f);
         });
     }
@@ -93,7 +93,7 @@ public final class BabyPiglinPossessionController {
 
         // Baby piglin ambient sound (higher pitch)
         if (player.age % 120 == 0 && player.getRandom().nextFloat() < 0.35f) {
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_PIGLIN_AMBIENT, SoundCategory.PLAYERS, 1.0f, 1.5f);
         }
 
@@ -102,7 +102,7 @@ public final class BabyPiglinPossessionController {
     }
 
     private static void handleOverworldConversion(ServerPlayerEntity player) {
-        boolean inOverworld = player.getWorld().getRegistryKey() == World.OVERWORLD;
+        boolean inOverworld = player.getEntityWorld().getRegistryKey() == World.OVERWORLD;
         if (!inOverworld) {
             int prev = OverworldConversionTracker.getTicks(player.getUuid());
             OverworldConversionTracker.reset(player.getUuid());
@@ -119,7 +119,7 @@ public final class BabyPiglinPossessionController {
             OverworldConversionTracker.reset(player.getUuid());
             WaterShakeNetworking.broadcast(player, false);
 
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_PIGLIN_CONVERTED_TO_ZOMBIFIED,
                     SoundCategory.HOSTILE, 1.0f, 1.5f);
 
@@ -135,13 +135,13 @@ public final class BabyPiglinPossessionController {
     private static void persistRally(ServerPlayerEntity player) {
         UUID attackerUuid = LAST_ATTACKER.get(player.getUuid());
         if (attackerUuid == null) return;
-        Entity e = player.getServerWorld().getEntity(attackerUuid);
+        Entity e = player.getEntityWorld().getEntity(attackerUuid);
         if (!(e instanceof LivingEntity attacker) || !attacker.isAlive()) {
             LAST_ATTACKER.remove(player.getUuid());
             return;
         }
         var box = player.getBoundingBox().expand(40.0);
-        for (MobEntity ally : player.getServerWorld()
+        for (MobEntity ally : player.getEntityWorld()
                 .getEntitiesByClass(MobEntity.class, box, m -> PiglinPossessionController.isPiglinAlly(m) && m.isAlive())) {
             if (ally instanceof net.minecraft.entity.mob.PiglinEntity piglin && piglin.isBaby()) continue;
             if (ally.getTarget() == null || !ally.getTarget().isAlive()) {
@@ -168,3 +168,9 @@ public final class BabyPiglinPossessionController {
         OverworldConversionTracker.reset(uuid);
     }
 }
+
+
+
+
+
+

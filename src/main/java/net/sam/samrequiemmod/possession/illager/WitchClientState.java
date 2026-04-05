@@ -24,3 +24,9 @@ public final class WitchClientState {
         return DRINKING_PLAYERS.contains(playerUuid);
     }
 }
+
+
+
+
+
+

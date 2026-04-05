@@ -6,3 +6,9 @@ import net.minecraft.entity.mob.IllagerEntity;
 public interface IllagerStateSetter {
     void samrequiemmod$setState(IllagerEntity.State state);
 }
+
+
+
+
+
+

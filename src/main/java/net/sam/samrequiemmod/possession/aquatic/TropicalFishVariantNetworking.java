@@ -34,9 +34,9 @@ public final class TropicalFishVariantNetworking {
     }
 
     public static void broadcastVariant(ServerPlayerEntity player, int variant) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         var pkt = new VariantSyncPayload(player.getUuid(), variant);
-        for (ServerPlayerEntity r : player.getServer().getPlayerManager().getPlayerList())
+        for (ServerPlayerEntity r : player.getEntityWorld().getServer().getPlayerManager().getPlayerList())
             ServerPlayNetworking.send(r, pkt);
     }
 
@@ -60,3 +60,9 @@ public final class TropicalFishVariantNetworking {
         public Id<? extends CustomPayload> getId() { return ID; }
     }
 }
+
+
+
+
+
+

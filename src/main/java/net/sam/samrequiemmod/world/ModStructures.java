@@ -26,3 +26,8 @@ public class ModStructures {
         SamuelRequiemMod.LOGGER.info("Registering structures for " + SamuelRequiemMod.MOD_ID);
     }
 }
+
+
+
+
+

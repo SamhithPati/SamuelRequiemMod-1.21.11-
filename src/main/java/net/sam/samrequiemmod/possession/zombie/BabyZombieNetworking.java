@@ -49,9 +49,9 @@ public final class BabyZombieNetworking {
     }
 
     public static void broadcastBabyZombieSync(ServerPlayerEntity player, boolean isBaby) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         var pkt = new BabyZombiePayload(player.getUuid(), isBaby);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, pkt);
         }
     }
@@ -71,3 +71,8 @@ public final class BabyZombieNetworking {
         @Override public Id<? extends CustomPayload> getId() { return ID; }
     }
 }
+
+
+
+
+

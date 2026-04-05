@@ -145,57 +145,57 @@ public final class BeastNetworking {
     }
 
     public static void broadcastHorseVariant(ServerPlayerEntity player, int variant) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         HorseVariantPayload payload = new HorseVariantPayload(player.getUuid(), variant);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
 
     public static void broadcastRabbitVariant(ServerPlayerEntity player, int variant) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         RabbitVariantPayload payload = new RabbitVariantPayload(player.getUuid(), variant);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
 
     public static void broadcastAxolotlVariant(ServerPlayerEntity player, int variant) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         AxolotlVariantPayload payload = new AxolotlVariantPayload(player.getUuid(), variant);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
 
     public static void broadcastShulkerOpen(ServerPlayerEntity player, long untilTick) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         ShulkerOpenPayload payload = new ShulkerOpenPayload(player.getUuid(), untilTick);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
 
     public static void broadcastAxolotlPlayDead(ServerPlayerEntity player, long untilTick) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         AxolotlPlayDeadPayload payload = new AxolotlPlayDeadPayload(player.getUuid(), untilTick);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
 
     public static void broadcastBeeAngry(ServerPlayerEntity player, boolean angry) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         BeeAngrySyncPayload payload = new BeeAngrySyncPayload(player.getUuid(), angry);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
 
     public static void broadcastParrotFlying(ServerPlayerEntity player, boolean flying) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         ParrotFlySyncPayload payload = new ParrotFlySyncPayload(player.getUuid(), flying);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
     }
@@ -398,3 +398,9 @@ public final class BeastNetworking {
         public Id<? extends CustomPayload> getId() { return ID; }
     }
 }
+
+
+
+
+
+

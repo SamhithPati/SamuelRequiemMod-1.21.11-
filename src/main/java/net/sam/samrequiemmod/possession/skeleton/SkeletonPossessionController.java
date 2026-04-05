@@ -3,8 +3,8 @@ package net.sam.samrequiemmod.possession.skeleton;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.util.Unit;
 import net.minecraft.component.type.PotionContentsComponent;
-import net.minecraft.component.type.UnbreakableComponent;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -13,6 +13,7 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.passive.IronGolemEntity;
+import net.minecraft.entity.passive.WolfEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -35,7 +36,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Handles Skeleton, Bogged, and Stray possession.
+ * Handles Skeleton, Bogged, Stray, and Parched possession.
  * - 10 hearts, bow + arrows that never run out
  * - Heal from bones, immune to poison and harming
  * - Can't swim, can't drown, burn in daylight
@@ -60,16 +61,23 @@ public final class SkeletonPossessionController {
         return PossessionManager.getPossessedType(player) == EntityType.STRAY;
     }
 
+    public static boolean isParchedPossessing(PlayerEntity player) {
+        return PossessionManager.getPossessedType(player) == EntityType.PARCHED;
+    }
+
     public static boolean isAnySkeletonPossessing(PlayerEntity player) {
         EntityType<?> type = PossessionManager.getPossessedType(player);
-        return type == EntityType.SKELETON || type == EntityType.BOGGED || type == EntityType.STRAY;
+        return type == EntityType.SKELETON
+                || type == EntityType.BOGGED
+                || type == EntityType.STRAY
+                || type == EntityType.PARCHED;
     }
 
     public static void register() {
 
         // ── Attack: mark provoked ──────────────────────────────────────────────
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isAnySkeletonPossessing(sp)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity)) return ActionResult.PASS;
@@ -93,8 +101,8 @@ public final class SkeletonPossessionController {
             }
 
             // Play skeleton hurt sound
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_SKELETON_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, getHurtSound(player), 1.0f);
 
             Entity attacker = source.getAttacker();
             if (attacker == null) return true;
@@ -109,8 +117,8 @@ public final class SkeletonPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isAnySkeletonPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_SKELETON_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                    getDeathSound(player), SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }
 
@@ -127,10 +135,12 @@ public final class SkeletonPossessionController {
         handlePoisonImmunity(player);
         handleHarmingHeals(player);
         aggroIronGolems(player);
+        aggroWolves(player);
     }
 
     // ── Item management ───────────────────────────────────────────────────────
     private static void ensureSkeletonItems(ServerPlayerEntity player) {
+        normalizeAmmo(player);
         if (ITEMS_GIVEN.contains(player.getUuid())) {
             ensureArrows(player);
             ensureBowUnbreakable(player);
@@ -141,12 +151,12 @@ public final class SkeletonPossessionController {
         ItemStack bow = new ItemStack(Items.BOW);
         try {
             bow.addEnchantment(
-                    player.getServerWorld().getRegistryManager()
-                            .get(RegistryKeys.ENCHANTMENT)
-                            .getEntry(Enchantments.INFINITY).orElseThrow(),
+                    player.getEntityWorld().getRegistryManager()
+                            .getOrThrow(RegistryKeys.ENCHANTMENT)
+                            .getOrThrow(Enchantments.INFINITY),
                     1);
         } catch (Exception ignored) {}
-        bow.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+        bow.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
 
         // Arrows: give tipped arrows based on skeleton type
         ItemStack arrows = getArrowsForType(player);
@@ -164,6 +174,12 @@ public final class SkeletonPossessionController {
             ItemStack arrows = new ItemStack(Items.TIPPED_ARROW, 64);
             arrows.set(DataComponentTypes.POTION_CONTENTS,
                     new PotionContentsComponent(Potions.POISON));
+            return arrows;
+        } else if (type == EntityType.PARCHED) {
+            // Weakness-tipped arrows
+            ItemStack arrows = new ItemStack(Items.TIPPED_ARROW, 64);
+            arrows.set(DataComponentTypes.POTION_CONTENTS,
+                    new PotionContentsComponent(Potions.WEAKNESS));
             return arrows;
         } else if (type == EntityType.STRAY) {
             // Slowness-tipped arrows
@@ -186,11 +202,12 @@ public final class SkeletonPossessionController {
         for (int i = 0; i < player.getInventory().size(); i++) {
             ItemStack s = player.getInventory().getStack(i);
             if (s.isOf(Items.BOW) && !s.contains(DataComponentTypes.UNBREAKABLE))
-                s.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true));
+                s.set(DataComponentTypes.UNBREAKABLE, Unit.INSTANCE);
         }
     }
 
     static void ensureArrows(ServerPlayerEntity player) {
+        normalizeAmmo(player);
         EntityType<?> type = PossessionManager.getPossessedType(player);
         boolean hasTipped = false;
         boolean hasNormal = false;
@@ -205,14 +222,40 @@ public final class SkeletonPossessionController {
             arrows.set(DataComponentTypes.POTION_CONTENTS,
                     new PotionContentsComponent(Potions.POISON));
             player.getInventory().offerOrDrop(arrows);
+        } else if (type == EntityType.PARCHED && !hasTipped) {
+            ItemStack arrows = new ItemStack(Items.TIPPED_ARROW, 64);
+            arrows.set(DataComponentTypes.POTION_CONTENTS,
+                    new PotionContentsComponent(Potions.WEAKNESS));
+            player.getInventory().offerOrDrop(arrows);
         } else if (type == EntityType.STRAY && !hasTipped) {
             ItemStack arrows = new ItemStack(Items.TIPPED_ARROW, 64);
             arrows.set(DataComponentTypes.POTION_CONTENTS,
                     new PotionContentsComponent(Potions.SLOWNESS));
             player.getInventory().offerOrDrop(arrows);
-        } else if (type == EntityType.SKELETON && !hasNormal) {
+        } else if ((type == EntityType.SKELETON || type == EntityType.PARCHED) && !hasNormal) {
             player.getInventory().offerOrDrop(new ItemStack(Items.ARROW, 64));
         }
+    }
+
+    private static void normalizeAmmo(ServerPlayerEntity player) {
+        if (!isParchedPossessing(player)) return;
+
+        for (int i = player.getInventory().size() - 1; i >= 0; i--) {
+            ItemStack stack = player.getInventory().getStack(i);
+            if (stack.isEmpty()) continue;
+            if (stack.isOf(Items.ARROW)) {
+                player.getInventory().setStack(i, ItemStack.EMPTY);
+                continue;
+            }
+            if (stack.isOf(Items.TIPPED_ARROW) && !isWeaknessArrow(stack)) {
+                player.getInventory().setStack(i, ItemStack.EMPTY);
+            }
+        }
+    }
+
+    private static boolean isWeaknessArrow(ItemStack stack) {
+        PotionContentsComponent contents = stack.get(DataComponentTypes.POTION_CONTENTS);
+        return contents != null && contents.matches(Potions.WEAKNESS);
     }
 
     // ── Hunger lock ───────────────────────────────────────────────────────────
@@ -223,12 +266,13 @@ public final class SkeletonPossessionController {
 
     // ── Sunlight burn ─────────────────────────────────────────────────────────
     private static void handleSunlightBurn(ServerPlayerEntity player) {
+        if (isParchedPossessing(player)) return;
         if (player.age % 20 != 0) return;
         if (player.isCreative() || player.isSpectator()) return;
-        if (!player.getWorld().isDay()) return;
-        if (player.isWet()) return;
+        if (!player.getEntityWorld().isDay()) return;
+        if (player.isTouchingWaterOrRain()) return;
         BlockPos eyePos = BlockPos.ofFloored(player.getX(), player.getEyeY(), player.getZ());
-        if (!player.getWorld().isSkyVisible(eyePos)) return;
+        if (!player.getEntityWorld().isSkyVisible(eyePos)) return;
         if (player.getEquippedStack(net.minecraft.entity.EquipmentSlot.HEAD).isEmpty()) {
             player.setOnFireFor(8);
         }
@@ -238,20 +282,32 @@ public final class SkeletonPossessionController {
     private static void handleAmbientSound(ServerPlayerEntity player) {
         if (player.age % 160 != 0) return;
         if (player.getRandom().nextFloat() >= 0.45f) return;
-        player.getWorld().playSound(null,
+        player.getEntityWorld().playSound(null,
                 player.getX(), player.getY(), player.getZ(),
-                SoundEvents.ENTITY_SKELETON_AMBIENT, SoundCategory.HOSTILE, 1.0f, 1.0f);
+                getAmbientSound(player), SoundCategory.HOSTILE, 1.0f, 1.0f);
+    }
+
+    public static net.minecraft.sound.SoundEvent getAmbientSound(PlayerEntity player) {
+        return isParchedPossessing(player)
+                ? SoundEvents.ENTITY_PARCHED_AMBIENT
+                : SoundEvents.ENTITY_SKELETON_AMBIENT;
+    }
+
+    public static net.minecraft.sound.SoundEvent getHurtSound(PlayerEntity player) {
+        return isParchedPossessing(player)
+                ? SoundEvents.ENTITY_PARCHED_HURT
+                : SoundEvents.ENTITY_SKELETON_HURT;
+    }
+
+    public static net.minecraft.sound.SoundEvent getDeathSound(PlayerEntity player) {
+        return isParchedPossessing(player)
+                ? SoundEvents.ENTITY_PARCHED_DEATH
+                : SoundEvents.ENTITY_SKELETON_DEATH;
     }
 
     // ── Prevent swimming ──────────────────────────────────────────────────────
     private static void preventSwimming(ServerPlayerEntity player) {
-        if (!player.isTouchingWater()) return;
-        if (player.isSwimming()) player.setSwimming(false);
-        Vec3d vel = player.getVelocity();
-        // Clamp upward velocity — skeletons cannot rise in water
-        double vy = Math.min(vel.y, -0.04);
-        player.setVelocity(vel.x * 0.5, vy, vel.z * 0.5);
-        player.velocityModified = true;
+        net.sam.samrequiemmod.possession.NoSwimPossessionHelper.disableSwimmingPose(player);
     }
 
     // ── Prevent drowning ──────────────────────────────────────────────────────
@@ -281,13 +337,26 @@ public final class SkeletonPossessionController {
     private static void aggroIronGolems(ServerPlayerEntity player) {
         if (player.age % 10 != 0) return;
         Box box = player.getBoundingBox().expand(24.0);
-        List<IronGolemEntity> golems = player.getWorld().getEntitiesByClass(
+        List<IronGolemEntity> golems = player.getEntityWorld().getEntitiesByClass(
                 IronGolemEntity.class, box, golem -> golem.isAlive());
         for (IronGolemEntity golem : golems) {
             if (golem.squaredDistanceTo(player) <= 24.0 * 24.0) {
                 golem.setTarget(player);
-                golem.setAngryAt(player.getUuid());
+                golem.setAngryAt(net.minecraft.entity.LazyEntityReference.of(player));
             }
+        }
+    }
+
+    private static void aggroWolves(ServerPlayerEntity player) {
+        if (!isParchedPossessing(player) || player.age % 10 != 0) return;
+        Box box = player.getBoundingBox().expand(24.0);
+        List<WolfEntity> wolves = player.getEntityWorld().getEntitiesByClass(
+                WolfEntity.class, box, wolf -> wolf.isAlive());
+        for (WolfEntity wolf : wolves) {
+            if (wolf.squaredDistanceTo(player) > 24.0 * 24.0) continue;
+            wolf.setTarget(player);
+            wolf.chooseRandomAngerTime();
+            wolf.setAngryAt(net.minecraft.entity.LazyEntityReference.of(player));
         }
     }
 
@@ -322,3 +391,11 @@ public final class SkeletonPossessionController {
         ITEMS_GIVEN.remove(playerUuid);
     }
 }
+
+
+
+
+
+
+
+

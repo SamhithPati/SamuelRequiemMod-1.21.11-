@@ -60,7 +60,7 @@ public final class CreeperPossessionController {
 
         // Left-click on entity: block melee damage (creepers can't hit mobs)
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (world.isClient) return ActionResult.PASS;
+            if (world.isClient()) return ActionResult.PASS;
             if (!(player instanceof ServerPlayerEntity sp)) return ActionResult.PASS;
             if (!isCreeperPossessing(sp)) return ActionResult.PASS;
             // Block all melee attacks — creepers don't melee
@@ -71,6 +71,7 @@ public final class CreeperPossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isCreeperPossessing(player)) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
             // Lightning strike → become charged creeper
             if (source.isOf(DamageTypes.LIGHTNING_BOLT)) {
@@ -78,13 +79,13 @@ public final class CreeperPossessionController {
                 // Broadcast charged state to clients
                 CreeperNetworking.broadcastChargeSync(player, isCharging(player.getUuid()),
                         getFuseTicks(player.getUuid()), true);
-                player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+                player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                         SoundEvents.ENTITY_CREEPER_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
                 return false; // don't take the lightning damage
             }
 
             // Play creeper hurt sound for other damage
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_CREEPER_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
             return true;
         });
@@ -93,7 +94,7 @@ public final class CreeperPossessionController {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return;
             if (!isCreeperPossessing(player)) return;
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_CREEPER_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }
@@ -132,7 +133,7 @@ public final class CreeperPossessionController {
 
     private static void ambientSound(ServerPlayerEntity player) {
         if (player.age % 160 == 0 && player.getRandom().nextFloat() < 0.3f) {
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_CREEPER_PRIMED, SoundCategory.PLAYERS, 0.3f, 1.0f);
         }
     }
@@ -151,7 +152,7 @@ public final class CreeperPossessionController {
             // Start charging
             CHARGING_PLAYERS.put(uuid, 0);
             // Play fuse ignite sound
-            player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.ENTITY_CREEPER_PRIMED, SoundCategory.PLAYERS, 1.0f, 0.5f);
             CreeperNetworking.broadcastChargeSync(player, true, 0, isCharged(uuid));
         }
@@ -161,7 +162,7 @@ public final class CreeperPossessionController {
 
     private static void explode(ServerPlayerEntity player) {
         UUID uuid = player.getUuid();
-        World world = player.getWorld();
+        World world = player.getEntityWorld();
         float power = CHARGED_PLAYERS.contains(uuid) ? 6.0f : 3.0f;
 
         // Grant brief explosion immunity so player survives their own blast
@@ -172,7 +173,7 @@ public final class CreeperPossessionController {
                 power, World.ExplosionSourceType.MOB);
 
         // Remove explosion immunity after a short delay
-        player.getServer().execute(() -> EXPLOSION_IMMUNE.remove(uuid));
+        player.getEntityWorld().getServer().execute(() -> EXPLOSION_IMMUNE.remove(uuid));
 
         // Broadcast cleared charge state
         CreeperNetworking.broadcastChargeSync(player, false, 0, isCharged(uuid));
@@ -182,7 +183,7 @@ public final class CreeperPossessionController {
         PossessionManager.clearPossession(player);
 
         // Apply post-possession protections (same pattern as death handler)
-        player.getServer().execute(() -> {
+        player.getEntityWorld().getServer().execute(() -> {
             if (player.getHealth() <= 0) player.setHealth(1.0f);
             player.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
                     net.minecraft.entity.effect.StatusEffects.INVISIBILITY, 100, 0, false, false));
@@ -190,7 +191,7 @@ public final class CreeperPossessionController {
                     net.minecraft.entity.effect.StatusEffects.RESISTANCE, 100, 4, false, false));
             // Clear mob targets on this player
             net.minecraft.util.math.Box box = player.getBoundingBox().expand(48.0);
-            for (net.minecraft.entity.mob.MobEntity mob : player.getServerWorld()
+            for (net.minecraft.entity.mob.MobEntity mob : player.getEntityWorld()
                     .getEntitiesByClass(net.minecraft.entity.mob.MobEntity.class, box, m -> m.getTarget() == player)) {
                 mob.setTarget(null);
             }
@@ -227,3 +228,9 @@ public final class CreeperPossessionController {
         EXPLOSION_IMMUNE.remove(uuid);
     }
 }
+
+
+
+
+
+

@@ -41,10 +41,10 @@ public final class ZombieAttackSyncNetworking {
     // ── Server-side send helpers ──────────────────────────────────────────────
 
     public static void broadcastZombieAttacking(ServerPlayerEntity player, boolean attacking) {
-        if (player.getServer() == null) return;
+        if (player.getEntityWorld().getServer() == null) return;
         UUID uuid = player.getUuid();
         var pkt = new ZombieAttackPayload(uuid, attacking);
-        for (ServerPlayerEntity recipient : player.getServer().getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, pkt);
         }
     }
@@ -74,3 +74,9 @@ public final class ZombieAttackSyncNetworking {
         }
     }
 }
+
+
+
+
+
+
