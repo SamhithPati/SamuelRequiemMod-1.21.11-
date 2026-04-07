@@ -3,6 +3,10 @@ package net.sam.samrequiemmod.possession.passive;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.passive.CatEntity;
+import net.minecraft.entity.passive.FoxEntity;
+import net.minecraft.entity.passive.OcelotEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -18,6 +22,10 @@ import net.sam.samrequiemmod.possession.PossessionManager;
 public final class PassiveMobPossessionController {
 
     private PassiveMobPossessionController() {}
+
+    private static float getPassivePitch(ServerPlayerEntity player) {
+        return BabyPassiveMobState.isServerBaby(player) ? 1.35f : 1.0f;
+    }
 
     public static void register() {
         // Block all melee attacks when possessing a passive mob
@@ -43,7 +51,7 @@ public final class PassiveMobPossessionController {
             if (source.getAttacker() instanceof net.minecraft.entity.mob.SlimeEntity) return true;
 
             net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
-                    player, hurtSound, 1.0f);
+                    player, hurtSound, getPassivePitch(player));
             return true;
         });
 
@@ -63,6 +71,7 @@ public final class PassiveMobPossessionController {
         lockHunger(player);
         handleAmbientSound(player);
         handleChickenSlowFall(player);
+        handleChickenPredators(player);
     }
 
     // ── Hunger lock ──────────────────────────────────────────────────────────
@@ -96,6 +105,31 @@ public final class PassiveMobPossessionController {
         }
     }
 
+    private static void handleChickenPredators(ServerPlayerEntity player) {
+        if (PossessionManager.getPossessedType(player) != EntityType.CHICKEN) return;
+        if (player.age % 10 != 0) return;
+
+        var box = player.getBoundingBox().expand(20.0);
+
+        for (FoxEntity fox : player.getEntityWorld().getEntitiesByClass(FoxEntity.class, box, FoxEntity::isAlive)) {
+            forcePredatorTarget(fox, player);
+        }
+
+        for (OcelotEntity ocelot : player.getEntityWorld().getEntitiesByClass(OcelotEntity.class, box, OcelotEntity::isAlive)) {
+            forcePredatorTarget(ocelot, player);
+        }
+
+        for (CatEntity cat : player.getEntityWorld().getEntitiesByClass(CatEntity.class, box, cat -> cat.isAlive() && !cat.isTamed())) {
+            forcePredatorTarget(cat, player);
+        }
+    }
+
+    private static void forcePredatorTarget(MobEntity predator, ServerPlayerEntity player) {
+        predator.setTarget(player);
+        predator.setAttacker(player);
+        predator.getNavigation().startMovingTo(player, 1.25);
+    }
+
     // ── Ambient sounds ───────────────────────────────────────────────────────
 
     private static void handleAmbientSound(ServerPlayerEntity player) {
@@ -108,7 +142,7 @@ public final class PassiveMobPossessionController {
 
         player.getEntityWorld().playSound(null,
                 player.getX(), player.getY(), player.getZ(),
-                ambientSound, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                ambientSound, SoundCategory.PLAYERS, 1.0f, getPassivePitch(player));
     }
 
     // ── Sound lookups ────────────────────────────────────────────────────────

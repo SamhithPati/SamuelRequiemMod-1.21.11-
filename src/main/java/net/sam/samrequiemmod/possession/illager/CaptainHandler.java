@@ -115,7 +115,7 @@ public final class CaptainHandler {
             if (PillagerPossessionController.isIllagerAlly(entity)) return true;
 
             // Rally ALL nearby illagers and ravagers (40 block radius)
-            Box box = captain.getBoundingBox().expand(40.0);
+            Box box = captain.getBoundingBox().expand(60.0);
             for (MobEntity mob : captain.getEntityWorld()
                     .getEntitiesByClass(MobEntity.class, box,
                             m -> PillagerPossessionController.isRallyMob(m) && m.isAlive())) {

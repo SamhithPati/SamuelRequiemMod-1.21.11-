@@ -81,7 +81,7 @@ public final class EvokerPossessionController {
                 redirectVexes(player, livingAttacker);
                 if (attacker instanceof MobEntity mob)
                     ZombieTargetingState.markProvoked(mob.getUuid(), player.getUuid());
-                Box box = player.getBoundingBox().expand(40.0);
+                Box box = player.getBoundingBox().expand(60.0);
                 for (MobEntity mob : player.getEntityWorld()
                         .getEntitiesByClass(MobEntity.class, box,
                                 m -> PillagerPossessionController.isRallyMob(m) && m.isAlive())) {
@@ -140,7 +140,7 @@ public final class EvokerPossessionController {
     }
 
     private static void commandNearbyAllies(ServerPlayerEntity player, LivingEntity target) {
-        Box box = player.getBoundingBox().expand(40.0);
+        Box box = player.getBoundingBox().expand(60.0);
         for (MobEntity mob : player.getEntityWorld()
                 .getEntitiesByClass(MobEntity.class, box,
                         m -> PillagerPossessionController.isRallyMob(m) && m.isAlive())) {
@@ -320,13 +320,26 @@ public final class EvokerPossessionController {
         ItemStack banner = PillagerPossessionController.createOminousBannerPublic(player);
         ItemStack horn = new ItemStack(Items.GOAT_HORN);
 
-        giveToSlot(player, totem, 0);
+        giveToOffhand(player, totem);
         if (!player.getInventory().insertStack(banner.copy()))
             player.dropItem(banner.copy(), false);
         GIVEN_BANNER.put(player.getUuid(), banner);
         player.getInventory().insertStack(horn);
 
         ITEMS_GIVEN.add(player.getUuid());
+    }
+
+    private static void giveToOffhand(ServerPlayerEntity player, ItemStack stack) {
+        ItemStack offhand = player.getOffHandStack();
+        if (offhand.isEmpty()) {
+            player.setStackInHand(net.minecraft.util.Hand.OFF_HAND, stack);
+            return;
+        }
+
+        if (!player.getInventory().insertStack(offhand.copy())) {
+            player.dropItem(offhand.copy(), false);
+        }
+        player.setStackInHand(net.minecraft.util.Hand.OFF_HAND, stack);
     }
 
     private static void giveToSlot(ServerPlayerEntity player, ItemStack stack, int slot) {

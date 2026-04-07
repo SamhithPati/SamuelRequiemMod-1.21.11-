@@ -49,6 +49,7 @@ public class SamuelRequiemModClient implements ClientModInitializer {
         net.sam.samrequiemmod.possession.creeper.CreeperNetworking.registerClient();
         net.sam.samrequiemmod.possession.aquatic.PufferfishNetworking.registerClient();
         net.sam.samrequiemmod.possession.aquatic.TropicalFishVariantNetworking.registerClient();
+        net.sam.samrequiemmod.client.NautilusHudRenderer.register();
         net.sam.samrequiemmod.possession.piglin.BabyPiglinNetworking.registerClient();
         net.sam.samrequiemmod.possession.piglin.BabyZombifiedPiglinNetworking.registerClient();
         net.sam.samrequiemmod.possession.hoglin.BabyHoglinNetworking.registerClient();

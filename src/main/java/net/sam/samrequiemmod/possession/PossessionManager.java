@@ -158,6 +158,7 @@ public final class PossessionManager {
         boolean wasFish = net.sam.samrequiemmod.possession.aquatic.FishPossessionController.isFishPossessing(player);
         boolean wasSquid = net.sam.samrequiemmod.possession.aquatic.SquidPossessionController.isSquidPossessing(player);
         boolean wasDolphin = net.sam.samrequiemmod.possession.aquatic.DolphinPossessionController.isDolphinPossessing(player);
+        boolean wasNautilus = net.sam.samrequiemmod.possession.aquatic.NautilusPossessionController.isAnyNautilusPossessing(player);
         boolean wasSpider = net.sam.samrequiemmod.possession.spider.SpiderPossessionController.isAnySpiderPossessing(player);
         boolean wasHoglinType = net.sam.samrequiemmod.possession.hoglin.HoglinPossessionController.isAnyHoglinTypePossessing(player);
         boolean wasGuardianType = net.sam.samrequiemmod.possession.guardian.GuardianPossessionController.isAnyGuardianPossessing(player);
@@ -313,6 +314,11 @@ public final class PossessionManager {
             net.sam.samrequiemmod.possession.aquatic.DolphinPossessionController.onUnpossess(player);
         } else {
             net.sam.samrequiemmod.possession.aquatic.DolphinPossessionController.onUnpossessUuid(player.getUuid());
+        }
+        if (wasNautilus) {
+            net.sam.samrequiemmod.possession.aquatic.NautilusPossessionController.onUnpossess(player);
+        } else {
+            net.sam.samrequiemmod.possession.aquatic.NautilusPossessionController.onUnpossessUuid(player.getUuid());
         }
         if (wasSpider) {
             net.sam.samrequiemmod.possession.spider.SpiderPossessionController.onUnpossess(player);

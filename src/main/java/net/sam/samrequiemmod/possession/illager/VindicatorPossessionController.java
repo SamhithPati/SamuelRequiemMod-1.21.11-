@@ -91,7 +91,7 @@ public final class VindicatorPossessionController {
 
             if (attacker instanceof LivingEntity livingAttacker) {
                 LAST_ATTACKER.put(player.getUuid(), livingAttacker.getUuid());
-                Box box = player.getBoundingBox().expand(40.0);
+                Box box = player.getBoundingBox().expand(60.0);
                 for (MobEntity mob : player.getEntityWorld()
                         .getEntitiesByClass(MobEntity.class, box,
                                 m -> PillagerPossessionController.isRallyMob(m) && m.isAlive())) {
@@ -148,7 +148,7 @@ public final class VindicatorPossessionController {
             LAST_ATTACKER.remove(player.getUuid());
             return;
         }
-        Box box = player.getBoundingBox().expand(40.0);
+        Box box = player.getBoundingBox().expand(60.0);
         for (MobEntity ally : player.getEntityWorld()
                 .getEntitiesByClass(MobEntity.class, box,
                         m -> PillagerPossessionController.isRallyMob(m) && m.isAlive())) {

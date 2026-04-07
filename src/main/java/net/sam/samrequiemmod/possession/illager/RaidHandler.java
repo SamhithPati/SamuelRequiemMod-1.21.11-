@@ -32,7 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class RaidHandler {
 
-    private static final long CELEBRATION_DURATION_TICKS = 300L;
+    private static final long CELEBRATION_DURATION_TICKS = 400L;
     private static final int CELEBRATION_JUMP_CHECK_INTERVAL = 10;
     private static final double CELEBRATION_JUMP_VELOCITY = 0.42;
     private static final double RAID_VILLAGER_SEARCH_RADIUS = 96.0;
@@ -99,10 +99,6 @@ public final class RaidHandler {
             return;
         }
 
-        tickRaidWitchDiscipline(player);
-        tickRaidWitchHealing(player);
-        tickBabyVillagerTargeting(player);
-        tickRaiderVillageTargeting(player);
         tickVillagerDeathDetection(player);
     }
 

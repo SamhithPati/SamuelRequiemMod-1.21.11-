@@ -9,6 +9,9 @@ import net.minecraft.entity.mob.WitchEntity;
 import net.minecraft.entity.mob.WardenEntity;
 import net.minecraft.entity.mob.BreezeEntity;
 import net.minecraft.entity.passive.IronGolemEntity;
+import net.minecraft.entity.passive.CatEntity;
+import net.minecraft.entity.passive.FoxEntity;
+import net.minecraft.entity.passive.OcelotEntity;
 import net.minecraft.entity.passive.PolarBearEntity;
 import net.minecraft.entity.passive.SnowGolemEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -54,6 +57,18 @@ public abstract class MobEntityTargetMixin {
                 && PossessionManager.isPossessing(serverPlayer)
                 && !net.sam.samrequiemmod.possession.fox.FoxPossessionController.isFoxPossessing(serverPlayer)
                 && !ZombieTargetingState.isProvoked(self.getUuid())) {
+            ci.cancel();
+            return;
+        }
+
+        boolean isPassiveMobPossessed =
+                net.sam.samrequiemmod.possession.passive.PassiveMobPossessionController.isPassiveMobPossessing(serverPlayer);
+        boolean isChickenPossessed =
+                PossessionManager.getPossessedType(serverPlayer) == EntityType.CHICKEN;
+        boolean chickenPredator = self instanceof FoxEntity
+                || self instanceof OcelotEntity
+                || (self instanceof CatEntity cat && !cat.isTamed());
+        if (isPassiveMobPossessed && !(isChickenPossessed && chickenPredator)) {
             ci.cancel();
             return;
         }
@@ -442,7 +457,8 @@ public abstract class MobEntityTargetMixin {
         boolean isAquaticPossessed =
                 net.sam.samrequiemmod.possession.aquatic.FishPossessionController.isFishPossessing(serverPlayer)
                         || net.sam.samrequiemmod.possession.aquatic.SquidPossessionController.isSquidPossessing(serverPlayer)
-                        || net.sam.samrequiemmod.possession.aquatic.DolphinPossessionController.isDolphinPossessing(serverPlayer);
+                        || net.sam.samrequiemmod.possession.aquatic.DolphinPossessionController.isDolphinPossessing(serverPlayer)
+                        || net.sam.samrequiemmod.possession.aquatic.NautilusPossessionController.isAnyNautilusPossessing(serverPlayer);
         if (isAquaticPossessed) {
             // Squid: guardians and elder guardians always attack
             if (net.sam.samrequiemmod.possession.aquatic.SquidPossessionController.isSquidPossessing(serverPlayer)

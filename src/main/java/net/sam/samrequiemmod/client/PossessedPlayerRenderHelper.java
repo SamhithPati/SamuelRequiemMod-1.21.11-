@@ -44,6 +44,7 @@ import net.minecraft.entity.mob.ZoglinEntity;
 import net.minecraft.entity.mob.ElderGuardianEntity;
 import net.minecraft.entity.mob.GhastEntity;
 import net.minecraft.entity.mob.MagmaCubeEntity;
+import net.minecraft.entity.mob.ZombieNautilusEntity;
 import net.minecraft.entity.mob.SlimeEntity;
 import net.minecraft.entity.mob.EndermiteEntity;
 import net.minecraft.entity.mob.ShulkerEntity;
@@ -58,6 +59,7 @@ import net.minecraft.entity.passive.FoxEntity;
 import net.minecraft.entity.passive.FrogEntity;
 import net.minecraft.entity.passive.IronGolemEntity;
 import net.minecraft.entity.passive.MooshroomEntity;
+import net.minecraft.entity.passive.NautilusEntity;
 import net.minecraft.entity.passive.CatEntity;
 import net.minecraft.entity.passive.OcelotEntity;
 import net.minecraft.entity.passive.PandaEntity;
@@ -73,6 +75,7 @@ import net.minecraft.entity.passive.ParrotEntity;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.passive.WolfEntity;
 import net.minecraft.entity.passive.AxolotlEntity;
+import net.minecraft.entity.passive.ArmadilloEntity;
 import net.minecraft.entity.passive.CamelEntity;
 import net.minecraft.entity.passive.GoatEntity;
 import net.minecraft.entity.passive.HorseEntity;
@@ -161,6 +164,8 @@ public final class PossessedPlayerRenderHelper {
     private static TropicalFishEntity cachedTropicalFish;
     private static SquidEntity cachedSquid;
     private static DolphinEntity cachedDolphin;
+    private static NautilusEntity cachedNautilus;
+    private static ZombieNautilusEntity cachedZombieNautilus;
     private static ZombifiedPiglinEntity cachedZombifiedPiglin;
     private static ZoglinEntity cachedZoglin;
     private static ElderGuardianEntity cachedElderGuardian;
@@ -192,6 +197,7 @@ public final class PossessedPlayerRenderHelper {
     private static AxolotlEntity cachedAxolotl;
     private static SnowGolemEntity cachedSnowGolem;
     private static CamelEntity cachedCamel;
+    private static ArmadilloEntity cachedArmadillo;
     private static final Map<UUID, Integer> LAST_ENDERMAN_PARTICLE_TICK = new ConcurrentHashMap<>();
 
     private PossessedPlayerRenderHelper() {
@@ -534,6 +540,11 @@ public final class PossessedPlayerRenderHelper {
                 cachedCamel = new CamelEntity(EntityType.CAMEL, world);
             return cachedCamel;
         }
+        if (type == EntityType.ARMADILLO) {
+            if (cachedArmadillo == null || cachedArmadillo.getEntityWorld() != world)
+                cachedArmadillo = new ArmadilloEntity(EntityType.ARMADILLO, world);
+            return cachedArmadillo;
+        }
         if (type == EntityType.ZOMBIE_VILLAGER) {
             if (cachedZombieVillager == null || cachedZombieVillager.getEntityWorld() != world)
                 cachedZombieVillager = new ZombieVillagerEntity(EntityType.ZOMBIE_VILLAGER, world);
@@ -633,6 +644,16 @@ public final class PossessedPlayerRenderHelper {
             if (cachedDolphin == null || cachedDolphin.getEntityWorld() != world)
                 cachedDolphin = new DolphinEntity(EntityType.DOLPHIN, world);
             return cachedDolphin;
+        }
+        if (type == EntityType.NAUTILUS) {
+            if (cachedNautilus == null || cachedNautilus.getEntityWorld() != world)
+                cachedNautilus = new NautilusEntity(EntityType.NAUTILUS, world);
+            return cachedNautilus;
+        }
+        if (type == EntityType.ZOMBIE_NAUTILUS) {
+            if (cachedZombieNautilus == null || cachedZombieNautilus.getEntityWorld() != world)
+                cachedZombieNautilus = new ZombieNautilusEntity(EntityType.ZOMBIE_NAUTILUS, world);
+            return cachedZombieNautilus;
         }
         return null;
     }
@@ -1286,6 +1307,13 @@ public final class PossessedPlayerRenderHelper {
             camel.setBaby(net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isClientBaby(player.getUuid()));
         }
 
+        if (shell instanceof ArmadilloEntity armadillo) {
+            armadillo.setBaby(net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isClientBaby(player.getUuid()));
+            armadillo.setState(net.sam.samrequiemmod.possession.beast.BeastState.isClientArmadilloCurled(player.getUuid())
+                    ? ArmadilloEntity.State.SCARED
+                    : ArmadilloEntity.State.IDLE);
+        }
+
         // Chicken: drive wing flapping animation based on player's airborne state.
         // Vanilla ChickenEntity.tickMovement() calculates flapProgress/maxWingDeviation
         // from movement, but our cached shell doesn't tick — so we set the fields manually.
@@ -1384,7 +1412,8 @@ public final class PossessedPlayerRenderHelper {
                 || player.getVehicle() instanceof net.minecraft.entity.mob.RavagerEntity
                 || player.getVehicle() instanceof SpiderEntity
                 || player.getVehicle() instanceof ZombieHorseEntity
-                || player.getVehicle() instanceof SkeletonHorseEntity)) {
+                || player.getVehicle() instanceof SkeletonHorseEntity
+                || player.getVehicle() instanceof ZombieNautilusEntity)) {
             shell.vehicle = player.getVehicle();
         } else {
             shell.vehicle = null;

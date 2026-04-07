@@ -244,6 +244,14 @@ public final class PossessionProfiles {
             0.85f, 1.18f, 1.05f, 12.0f, 0.0f
     );
 
+    public static final PossessionProfile ARMADILLO_PROFILE = new PossessionProfile(
+            0.7f, 0.65f, 0.3f, -8.0f, -0.02f
+    );
+
+    public static final PossessionProfile BABY_ARMADILLO_PROFILE = new PossessionProfile(
+            0.35f, 0.325f, 0.15f, -8.0f, -0.02f
+    );
+
     public static final PossessionProfile VEX_PROFILE = new PossessionProfile(
             0.4f, 0.8f, 0.6f, 0.0f, 0.0f
     );
@@ -337,6 +345,12 @@ public final class PossessionProfiles {
     // 🐬 Dolphin — 5 hearts (10 HP), same land penalty
     public static final PossessionProfile DOLPHIN_PROFILE = new PossessionProfile(
             0.6f, 0.6f, 0.5f, -10.0, -0.06);
+
+    public static final PossessionProfile NAUTILUS_PROFILE = new PossessionProfile(
+            0.7f, 0.8f, 0.72f, -5.0, -0.06);
+
+    public static final PossessionProfile ZOMBIE_NAUTILUS_PROFILE = new PossessionProfile(
+            0.7f, 0.8f, 0.72f, -5.0, -0.06);
 
     static {
         // 🧟 Zombie profile
@@ -504,6 +518,7 @@ public final class PossessionProfiles {
         register(EntityType.AXOLOTL, AXOLOTL_PROFILE);
         register(EntityType.SNOW_GOLEM, SNOW_GOLEM_PROFILE);
         register(EntityType.CAMEL, CAMEL_PROFILE);
+        register(EntityType.ARMADILLO, ARMADILLO_PROFILE);
         register(EntityType.VEX, VEX_PROFILE);
         register(EntityType.BAT, BAT_PROFILE);
         register(EntityType.VILLAGER, VILLAGER_PROFILE);
@@ -543,6 +558,8 @@ public final class PossessionProfiles {
         register(EntityType.TROPICAL_FISH, TROPICAL_FISH_PROFILE);
         register(EntityType.SQUID, SQUID_PROFILE);
         register(EntityType.DOLPHIN, DOLPHIN_PROFILE);
+        register(EntityType.NAUTILUS, NAUTILUS_PROFILE);
+        register(EntityType.ZOMBIE_NAUTILUS, ZOMBIE_NAUTILUS_PROFILE);
     }
 
     private PossessionProfiles() {}

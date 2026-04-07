@@ -9,6 +9,9 @@ import net.minecraft.entity.mob.ZoglinEntity;
 import net.minecraft.entity.mob.WardenEntity;
 import net.minecraft.entity.mob.BreezeEntity;
 import net.minecraft.entity.passive.IronGolemEntity;
+import net.minecraft.entity.passive.CatEntity;
+import net.minecraft.entity.passive.FoxEntity;
+import net.minecraft.entity.passive.OcelotEntity;
 import net.minecraft.entity.passive.PolarBearEntity;
 import net.minecraft.entity.passive.SnowGolemEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -106,6 +109,12 @@ public abstract class MobEntityCanTargetMixin {
         // Passive mob possession — hostile mobs don't attack
         boolean isPassiveMobPossessed =
                 net.sam.samrequiemmod.possession.passive.PassiveMobPossessionController.isPassiveMobPossessing(serverPlayer);
+        boolean isChickenPossessed =
+                PossessionManager.getPossessedType(serverPlayer) == EntityType.CHICKEN;
+        boolean chickenPredator = self instanceof FoxEntity
+                || self instanceof OcelotEntity
+                || (self instanceof CatEntity cat && !cat.isTamed());
+        boolean passiveMobBlocked = isPassiveMobPossessed && !(isChickenPossessed && chickenPredator);
 
         boolean isPandaPossessed =
                 net.sam.samrequiemmod.possession.passive.PandaPossessionController.isPandaPossessing(serverPlayer);
@@ -439,7 +448,8 @@ public abstract class MobEntityCanTargetMixin {
         boolean isAquaticPossessed =
                 net.sam.samrequiemmod.possession.aquatic.FishPossessionController.isFishPossessing(serverPlayer)
                         || net.sam.samrequiemmod.possession.aquatic.SquidPossessionController.isSquidPossessing(serverPlayer)
-                        || net.sam.samrequiemmod.possession.aquatic.DolphinPossessionController.isDolphinPossessing(serverPlayer);
+                        || net.sam.samrequiemmod.possession.aquatic.DolphinPossessionController.isDolphinPossessing(serverPlayer)
+                        || net.sam.samrequiemmod.possession.aquatic.NautilusPossessionController.isAnyNautilusPossessing(serverPlayer);
         boolean aquaticBlocked = false;
         if (isAquaticPossessed) {
             // Squid: guardians and elder guardians always attack
@@ -482,7 +492,7 @@ public abstract class MobEntityCanTargetMixin {
             }
         }
 
-        if (isZombiePossessed || isImmune || isIllagerAlly || illagerBlocked || isPassiveMobPossessed || pandaBlocked || ironGolemBlocked || skeletonBlocked || witherSkeletonBlocked || endermanBlocked || wardenBlocked || breezeBlocked || creeperBlocked || spiderBlocked || hoglinBlocked || guardianBlocked || silverfishBlocked || blazeBlocked || ghastBlocked || wolfBlocked || foxBlocked || felineBlocked || vexBlocked || batBlocked || villagerBlocked || beastBlocked || slimeBlocked || aquaticBlocked || piglinBlocked || zombifiedPiglinBlocked) {
+        if (isZombiePossessed || isImmune || isIllagerAlly || illagerBlocked || passiveMobBlocked || pandaBlocked || ironGolemBlocked || skeletonBlocked || witherSkeletonBlocked || endermanBlocked || wardenBlocked || breezeBlocked || creeperBlocked || spiderBlocked || hoglinBlocked || guardianBlocked || silverfishBlocked || blazeBlocked || ghastBlocked || wolfBlocked || foxBlocked || felineBlocked || vexBlocked || batBlocked || villagerBlocked || beastBlocked || slimeBlocked || aquaticBlocked || piglinBlocked || zombifiedPiglinBlocked) {
             cir.setReturnValue(false);
         }
     }

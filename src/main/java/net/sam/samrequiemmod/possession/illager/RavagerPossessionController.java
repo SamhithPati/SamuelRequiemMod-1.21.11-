@@ -101,7 +101,7 @@ public final class RavagerPossessionController {
             // Rally all ravagers within 40 blocks to attack the aggressor
             if (attacker instanceof LivingEntity livingAttacker) {
                 LAST_ATTACKER.put(player.getUuid(), livingAttacker.getUuid());
-                Box box = player.getBoundingBox().expand(40.0);
+                Box box = player.getBoundingBox().expand(60.0);
                 for (MobEntity mob : player.getEntityWorld()
                         .getEntitiesByClass(MobEntity.class, box,
                                 m -> isRavagerRallyMob(m) && m.isAlive())) {
@@ -253,7 +253,7 @@ public final class RavagerPossessionController {
             LAST_ATTACKER.remove(player.getUuid());
             return;
         }
-        Box box = player.getBoundingBox().expand(40.0);
+        Box box = player.getBoundingBox().expand(60.0);
         for (MobEntity ally : player.getEntityWorld()
                 .getEntitiesByClass(MobEntity.class, box,
                         m -> isRavagerRallyMob(m) && m.isAlive())) {

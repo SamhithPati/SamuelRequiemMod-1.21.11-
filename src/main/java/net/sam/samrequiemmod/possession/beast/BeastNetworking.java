@@ -31,11 +31,16 @@ public final class BeastNetworking {
     private static final Identifier BEE_ANGRY_SYNC_ID = Identifier.of(SamuelRequiemMod.MOD_ID, "beast_bee_angry_sync");
     private static final Identifier PARROT_FLY_TOGGLE_ID = Identifier.of(SamuelRequiemMod.MOD_ID, "beast_parrot_fly_toggle");
     private static final Identifier PARROT_FLY_SYNC_ID = Identifier.of(SamuelRequiemMod.MOD_ID, "beast_parrot_fly_sync");
+    private static final Identifier ARMADILLO_CURL_TOGGLE_ID = Identifier.of(SamuelRequiemMod.MOD_ID, "beast_armadillo_curl_toggle");
+    private static final Identifier ARMADILLO_CURL_SYNC_ID = Identifier.of(SamuelRequiemMod.MOD_ID, "beast_armadillo_curl_sync");
 
     private static boolean wasAttackDown = false;
     private static boolean wasYDown = false;
     private static boolean wasJumpDown = false;
+    private static boolean wasUseDown = false;
     private static long lastParrotJumpTapMs = 0L;
+    private static int armadilloUseTicks = 0;
+    private static boolean armadilloCurlSent = false;
 
     private BeastNetworking() {}
 
@@ -51,6 +56,8 @@ public final class BeastNetworking {
         PayloadTypeRegistry.playS2C().register(BeeAngrySyncPayload.ID, BeeAngrySyncPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(ParrotFlyTogglePayload.ID, ParrotFlyTogglePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(ParrotFlySyncPayload.ID, ParrotFlySyncPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(ArmadilloCurlTogglePayload.ID, ArmadilloCurlTogglePayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(ArmadilloCurlSyncPayload.ID, ArmadilloCurlSyncPayload.CODEC);
     }
 
     public static void registerServer() {
@@ -66,6 +73,9 @@ public final class BeastNetworking {
         ServerPlayNetworking.registerGlobalReceiver(ParrotFlyTogglePayload.ID, (payload, context) ->
                 context.server().execute(() ->
                         BeastPossessionController.handleParrotFlightToggle(context.player())));
+        ServerPlayNetworking.registerGlobalReceiver(ArmadilloCurlTogglePayload.ID, (payload, context) ->
+                context.server().execute(() ->
+                        BeastPossessionController.handleArmadilloCurlToggle(context.player(), payload.curled())));
     }
 
     public static void registerClient() {
@@ -90,13 +100,19 @@ public final class BeastNetworking {
         ClientPlayNetworking.registerGlobalReceiver(ParrotFlySyncPayload.ID, (payload, context) ->
                 context.client().execute(() ->
                         BeastState.setClientParrotFlying(payload.playerUuid(), payload.flying())));
+        ClientPlayNetworking.registerGlobalReceiver(ArmadilloCurlSyncPayload.ID, (payload, context) ->
+                context.client().execute(() ->
+                        BeastState.setClientArmadilloCurled(payload.playerUuid(), payload.curled())));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null || client.world == null) {
                 wasAttackDown = false;
                 wasYDown = false;
                 wasJumpDown = false;
+                wasUseDown = false;
                 lastParrotJumpTapMs = 0L;
+                armadilloUseTicks = 0;
+                armadilloCurlSent = false;
                 return;
             }
             EntityType<?> type = ClientPossessionState.get(client.player);
@@ -122,6 +138,30 @@ public final class BeastNetworking {
                 lastParrotJumpTapMs = 0L;
             }
             wasJumpDown = jumpDown;
+
+            boolean useDown = client.options.useKey.isPressed();
+            if (type == EntityType.ARMADILLO && client.currentScreen == null) {
+                if (useDown) {
+                    armadilloUseTicks++;
+                    if (armadilloUseTicks >= 40 && !armadilloCurlSent) {
+                        ClientPlayNetworking.send(new ArmadilloCurlTogglePayload(true));
+                        armadilloCurlSent = true;
+                    }
+                } else {
+                    if (armadilloCurlSent || BeastState.isClientArmadilloCurled(client.player.getUuid())) {
+                        ClientPlayNetworking.send(new ArmadilloCurlTogglePayload(false));
+                    }
+                    armadilloUseTicks = 0;
+                    armadilloCurlSent = false;
+                }
+            } else {
+                if (armadilloCurlSent && type != EntityType.ARMADILLO) {
+                    ClientPlayNetworking.send(new ArmadilloCurlTogglePayload(false));
+                }
+                armadilloUseTicks = 0;
+                armadilloCurlSent = false;
+            }
+            wasUseDown = useDown;
 
             if (type == EntityType.SHULKER) {
                 boolean attackDown = client.options.attackKey.isPressed();
@@ -195,6 +235,14 @@ public final class BeastNetworking {
     public static void broadcastParrotFlying(ServerPlayerEntity player, boolean flying) {
         if (player.getEntityWorld().getServer() == null) return;
         ParrotFlySyncPayload payload = new ParrotFlySyncPayload(player.getUuid(), flying);
+        for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
+            ServerPlayNetworking.send(recipient, payload);
+        }
+    }
+
+    public static void broadcastArmadilloCurled(ServerPlayerEntity player, boolean curled) {
+        if (player.getEntityWorld().getServer() == null) return;
+        ArmadilloCurlSyncPayload payload = new ArmadilloCurlSyncPayload(player.getUuid(), curled);
         for (ServerPlayerEntity recipient : player.getEntityWorld().getServer().getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(recipient, payload);
         }
@@ -392,6 +440,41 @@ public final class BeastNetworking {
         private void write(RegistryByteBuf buf) {
             buf.writeUuid(playerUuid);
             buf.writeBoolean(flying);
+        }
+
+        @Override
+        public Id<? extends CustomPayload> getId() { return ID; }
+    }
+
+    public record ArmadilloCurlTogglePayload(boolean curled) implements CustomPayload {
+        public static final Id<ArmadilloCurlTogglePayload> ID = new Id<>(ARMADILLO_CURL_TOGGLE_ID);
+        public static final PacketCodec<RegistryByteBuf, ArmadilloCurlTogglePayload> CODEC =
+                PacketCodec.of(ArmadilloCurlTogglePayload::write, ArmadilloCurlTogglePayload::read);
+
+        private static ArmadilloCurlTogglePayload read(RegistryByteBuf buf) {
+            return new ArmadilloCurlTogglePayload(buf.readBoolean());
+        }
+
+        private void write(RegistryByteBuf buf) {
+            buf.writeBoolean(curled);
+        }
+
+        @Override
+        public Id<? extends CustomPayload> getId() { return ID; }
+    }
+
+    public record ArmadilloCurlSyncPayload(UUID playerUuid, boolean curled) implements CustomPayload {
+        public static final Id<ArmadilloCurlSyncPayload> ID = new Id<>(ARMADILLO_CURL_SYNC_ID);
+        public static final PacketCodec<RegistryByteBuf, ArmadilloCurlSyncPayload> CODEC =
+                PacketCodec.of(ArmadilloCurlSyncPayload::write, ArmadilloCurlSyncPayload::read);
+
+        private static ArmadilloCurlSyncPayload read(RegistryByteBuf buf) {
+            return new ArmadilloCurlSyncPayload(buf.readUuid(), buf.readBoolean());
+        }
+
+        private void write(RegistryByteBuf buf) {
+            buf.writeUuid(playerUuid);
+            buf.writeBoolean(curled);
         }
 
         @Override

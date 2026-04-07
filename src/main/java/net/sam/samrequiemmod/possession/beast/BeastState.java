@@ -21,6 +21,8 @@ public final class BeastState {
     private static final Map<UUID, Boolean> CLIENT_BEE_ANGRY = new ConcurrentHashMap<>();
     private static final Map<UUID, Boolean> SERVER_PARROT_FLYING = new ConcurrentHashMap<>();
     private static final Map<UUID, Boolean> CLIENT_PARROT_FLYING = new ConcurrentHashMap<>();
+    private static final Map<UUID, Boolean> SERVER_ARMADILLO_CURLED = new ConcurrentHashMap<>();
+    private static final Map<UUID, Boolean> CLIENT_ARMADILLO_CURLED = new ConcurrentHashMap<>();
 
     private BeastState() {}
 
@@ -108,6 +110,24 @@ public final class BeastState {
         return CLIENT_PARROT_FLYING.getOrDefault(uuid, false);
     }
 
+    public static void setServerArmadilloCurled(UUID uuid, boolean curled) {
+        if (curled) SERVER_ARMADILLO_CURLED.put(uuid, true);
+        else SERVER_ARMADILLO_CURLED.remove(uuid);
+    }
+
+    public static boolean isServerArmadilloCurled(UUID uuid) {
+        return SERVER_ARMADILLO_CURLED.getOrDefault(uuid, false);
+    }
+
+    public static void setClientArmadilloCurled(UUID uuid, boolean curled) {
+        if (curled) CLIENT_ARMADILLO_CURLED.put(uuid, true);
+        else CLIENT_ARMADILLO_CURLED.remove(uuid);
+    }
+
+    public static boolean isClientArmadilloCurled(UUID uuid) {
+        return CLIENT_ARMADILLO_CURLED.getOrDefault(uuid, false);
+    }
+
     public static void setServerShulkerOpenUntil(UUID uuid, long untilTick) {
         if (untilTick <= 0L) SERVER_SHULKER_OPEN_UNTIL.remove(uuid);
         else SERVER_SHULKER_OPEN_UNTIL.put(uuid, untilTick);
@@ -188,6 +208,8 @@ public final class BeastState {
         CLIENT_BEE_ANGRY.remove(uuid);
         SERVER_PARROT_FLYING.remove(uuid);
         CLIENT_PARROT_FLYING.remove(uuid);
+        SERVER_ARMADILLO_CURLED.remove(uuid);
+        CLIENT_ARMADILLO_CURLED.remove(uuid);
     }
 }
 

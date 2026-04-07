@@ -67,6 +67,7 @@ public class SamuelRequiemMod implements ModInitializer {
 		net.sam.samrequiemmod.possession.creeper.CreeperNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.aquatic.PufferfishNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.aquatic.TropicalFishVariantNetworking.registerCommon();
+		net.sam.samrequiemmod.possession.aquatic.NautilusNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.piglin.BabyPiglinNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.piglin.BabyZombifiedPiglinNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.hoglin.BabyHoglinNetworking.registerCommon();
@@ -140,6 +141,9 @@ public class SamuelRequiemMod implements ModInitializer {
 		net.sam.samrequiemmod.possession.aquatic.FishPossessionController.register();
 		net.sam.samrequiemmod.possession.aquatic.SquidPossessionController.register();
 		net.sam.samrequiemmod.possession.aquatic.DolphinPossessionController.register();
+		net.sam.samrequiemmod.possession.aquatic.NautilusPossessionController.register();
+		net.sam.samrequiemmod.possession.aquatic.NautilusNetworking.registerServer();
+		net.sam.samrequiemmod.possession.drowned.ZombieNautilusRidingHandler.register();
 		net.sam.samrequiemmod.possession.spider.SpiderPossessionController.register();
 		net.sam.samrequiemmod.possession.hoglin.HoglinPossessionController.register();
 		net.sam.samrequiemmod.possession.guardian.GuardianPossessionController.register();
@@ -176,6 +180,7 @@ public class SamuelRequiemMod implements ModInitializer {
 				(entity, source, amount) -> {
 					if (!(entity instanceof net.minecraft.server.network.ServerPlayerEntity player)) return true;
 					if (!PossessionManager.isPossessing(player)) return true;
+					if (hasUsableTotem(player)) return true;
 					if (net.sam.samrequiemmod.possession.slime.SlimePossessionController.handleLethalSplit(player)) {
 						return false;
 					}
@@ -329,6 +334,8 @@ public class SamuelRequiemMod implements ModInitializer {
 											? net.minecraft.sound.SoundEvents.ENTITY_SNOW_GOLEM_DEATH
 											: net.sam.samrequiemmod.possession.beast.BeastPossessionController.isCamelPossessing(player)
 											? net.minecraft.sound.SoundEvents.ENTITY_CAMEL_DEATH
+											: net.sam.samrequiemmod.possession.beast.BeastPossessionController.isArmadilloPossessing(player)
+											? net.minecraft.sound.SoundEvents.ENTITY_ARMADILLO_DEATH
 											: net.sam.samrequiemmod.possession.beast.BeastPossessionController.isBeePossessing(player)
 											? net.minecraft.sound.SoundEvents.ENTITY_BEE_DEATH
 											: net.sam.samrequiemmod.possession.beast.BeastPossessionController.isParrotPossessing(player)
@@ -358,6 +365,14 @@ public class SamuelRequiemMod implements ModInitializer {
 							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_DOLPHIN_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
+						} else if (net.sam.samrequiemmod.possession.aquatic.NautilusPossessionController.isAnyNautilusPossessing(player)) {
+							boolean zombieNautilus = net.sam.samrequiemmod.possession.aquatic.NautilusPossessionController.isZombieNautilusPossessing(player);
+							boolean inWater = player.isTouchingWater();
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+									zombieNautilus
+											? (inWater ? net.minecraft.sound.SoundEvents.ENTITY_ZOMBIE_NAUTILUS_DEATH : net.minecraft.sound.SoundEvents.ENTITY_ZOMBIE_NAUTILUS_DEATH_LAND)
+											: (inWater ? net.minecraft.sound.SoundEvents.ENTITY_NAUTILUS_DEATH : net.minecraft.sound.SoundEvents.ENTITY_NAUTILUS_DEATH_LAND),
+									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.piglin.PiglinPossessionController.isPiglinPossessing(player)) {
 							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_PIGLIN_DEATH,
@@ -383,8 +398,10 @@ public class SamuelRequiemMod implements ModInitializer {
 							net.minecraft.entity.EntityType<?> possType = PossessionManager.getPossessedType(player);
 							net.minecraft.sound.SoundEvent deathSound = net.sam.samrequiemmod.possession.passive.PassiveMobPossessionController.getDeathSound(possType);
 							if (deathSound != null) {
+								float pitch = net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)
+										? 1.35f : 1.0f;
 								player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-										deathSound, net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
+										deathSound, net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, pitch);
 							}
 						}
 						PossessionManager.clearPossession(player);
@@ -649,6 +666,7 @@ public class SamuelRequiemMod implements ModInitializer {
 					net.sam.samrequiemmod.possession.aquatic.FishPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.aquatic.SquidPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.aquatic.DolphinPossessionController.tick(player);
+					net.sam.samrequiemmod.possession.aquatic.NautilusPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.spider.SpiderPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.hoglin.HoglinPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.guardian.GuardianPossessionController.tick(player);
@@ -757,6 +775,11 @@ public class SamuelRequiemMod implements ModInitializer {
 			return owner;
 		}
 		return null;
+	}
+
+	private static boolean hasUsableTotem(net.minecraft.server.network.ServerPlayerEntity player) {
+		return player.getMainHandStack().isOf(net.minecraft.item.Items.TOTEM_OF_UNDYING)
+				|| player.getOffHandStack().isOf(net.minecraft.item.Items.TOTEM_OF_UNDYING);
 	}
 
 	private static void clearFireForFireproofPossessions(net.minecraft.server.network.ServerPlayerEntity player) {

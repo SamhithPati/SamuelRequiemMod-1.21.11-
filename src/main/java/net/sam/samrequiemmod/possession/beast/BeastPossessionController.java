@@ -14,6 +14,7 @@ import net.minecraft.entity.mob.EndermanEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.mob.ShulkerEntity;
 import net.minecraft.entity.passive.AbstractHorseEntity;
+import net.minecraft.entity.passive.ArmadilloEntity;
 import net.minecraft.entity.passive.AxolotlEntity;
 import net.minecraft.entity.passive.BeeEntity;
 import net.minecraft.entity.passive.CamelEntity;
@@ -43,6 +44,7 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.Difficulty;
 import net.sam.samrequiemmod.item.ModItems;
+import net.sam.samrequiemmod.possession.PossessionHurtSoundHelper;
 import net.sam.samrequiemmod.possession.PossessionManager;
 import net.sam.samrequiemmod.possession.passive.BabyPassiveMobNetworking;
 import net.sam.samrequiemmod.possession.passive.BabyPassiveMobState;
@@ -54,6 +56,7 @@ import java.util.UUID;
 public final class BeastPossessionController {
 
     private static final java.util.Map<UUID, Long> LAST_CAMEL_DASH = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Set<UUID> ARMADILLO_DAMAGE_BYPASS = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     private BeastPossessionController() {}
 
@@ -111,6 +114,10 @@ public final class BeastPossessionController {
         return PossessionManager.getPossessedType(player) == EntityType.PARROT;
     }
 
+    public static boolean isArmadilloPossessing(PlayerEntity player) {
+        return PossessionManager.getPossessedType(player) == EntityType.ARMADILLO;
+    }
+
     public static boolean isTrackedType(EntityType<?> type) {
         return type == EntityType.HORSE || type == EntityType.MULE || type == EntityType.ZOMBIE_HORSE
                 || type == EntityType.SKELETON_HORSE || type == EntityType.ENDERMITE
@@ -118,7 +125,8 @@ public final class BeastPossessionController {
                 || type == EntityType.RABBIT || type == EntityType.TURTLE || type == EntityType.SHULKER
                 || type == EntityType.STRIDER || type == EntityType.AXOLOTL
                 || type == EntityType.SNOW_GOLEM || type == EntityType.CAMEL
-                || type == EntityType.BEE || type == EntityType.PARROT;
+                || type == EntityType.BEE || type == EntityType.PARROT
+                || type == EntityType.ARMADILLO;
     }
 
     public static boolean isPolarBearAlly(Entity entity) {
@@ -138,7 +146,8 @@ public final class BeastPossessionController {
             if (isHorseLikePossessing(serverPlayer)
                     || isRabbitPossessing(serverPlayer) || isTurtlePossessing(serverPlayer)
                     || (isGoatPossessing(serverPlayer) && BabyPassiveMobState.isServerBaby(serverPlayer))
-                    || (isPolarBearPossessing(serverPlayer) && BabyPassiveMobState.isServerBaby(serverPlayer))) {
+                    || (isPolarBearPossessing(serverPlayer) && BabyPassiveMobState.isServerBaby(serverPlayer))
+                    || isArmadilloPossessing(serverPlayer)) {
                 return ActionResult.FAIL;
             }
 
@@ -218,6 +227,20 @@ public final class BeastPossessionController {
             if (!isTrackedType(type)) return true;
             if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
+            if (type == EntityType.ARMADILLO && BeastState.isServerArmadilloCurled(player.getUuid())) {
+                if (ARMADILLO_DAMAGE_BYPASS.contains(player.getUuid())) return true;
+                float reduced = Math.max(0.0f, (amount - 1.0f) / 2.0f);
+                if (reduced <= 0.0f) return false;
+
+                ARMADILLO_DAMAGE_BYPASS.add(player.getUuid());
+                try {
+                    player.damage(player.getEntityWorld(), source, reduced);
+                } finally {
+                    ARMADILLO_DAMAGE_BYPASS.remove(player.getUuid());
+                }
+                return false;
+            }
+
             if (type == EntityType.TURTLE && source.equals(player.getDamageSources().drown())) {
                 return false;
             }
@@ -241,8 +264,7 @@ public final class BeastPossessionController {
 
             SoundEvent hurt = getHurtSound(player);
             if (hurt != null) {
-                net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
-                        player, hurt, getPitch(player));
+                PossessionHurtSoundHelper.playIfReady(player, hurt, getPitch(player));
             }
 
             if (source.getAttacker() instanceof LivingEntity attacker) {
@@ -295,6 +317,11 @@ public final class BeastPossessionController {
 
         if (isRabbitPossessing(player)) {
             player.fallDistance = 0.0f;
+        }
+
+        if (isArmadilloPossessing(player)) {
+            handleArmadilloCurlMovement(player);
+            handleArmadilloSpiderFlee(player);
         }
 
         if (isTurtlePossessing(player)) {
@@ -458,6 +485,10 @@ public final class BeastPossessionController {
         BabyPassiveMobState.setServerBaby(player.getUuid(), camel.isBaby());
     }
 
+    public static void initializePassiveBaby(ServerPlayerEntity player, ArmadilloEntity armadillo) {
+        BabyPassiveMobState.setServerBaby(player.getUuid(), armadillo.isBaby());
+    }
+
     public static void initializeAxolotlState(ServerPlayerEntity player, AxolotlEntity axolotl) {
         int variant = axolotl.getDataTracker().get(net.sam.samrequiemmod.mixin.client.AxolotlEntityVariantAccessor.getVariantKey());
         BeastState.setServerAxolotlVariant(player.getUuid(), variant);
@@ -472,6 +503,7 @@ public final class BeastPossessionController {
         BeastNetworking.broadcastShulkerOpen(player, 0L);
         BeastNetworking.broadcastBeeAngry(player, BeastState.isServerBeeAngry(player.getUuid()));
         BeastNetworking.broadcastParrotFlying(player, BeastState.isServerParrotFlying(player.getUuid()));
+        BeastNetworking.broadcastArmadilloCurled(player, BeastState.isServerArmadilloCurled(player.getUuid()));
         if (isShulkerPossessing(player)) {
             BeastState.setServerShulkerAnchor(player.getUuid(), player.getX(), player.getY(), player.getZ());
         }
@@ -489,7 +521,14 @@ public final class BeastPossessionController {
     }
 
     public static void onUnpossessUuid(UUID uuid) {
+        ARMADILLO_DAMAGE_BYPASS.remove(uuid);
         BeastState.clear(uuid);
+    }
+
+    public static void handleArmadilloCurlToggle(ServerPlayerEntity player, boolean curled) {
+        if (!isArmadilloPossessing(player)) return;
+        BeastState.setServerArmadilloCurled(player.getUuid(), curled);
+        BeastNetworking.broadcastArmadilloCurled(player, curled);
     }
 
     public static boolean isHorseFood(ItemStack stack) {
@@ -569,13 +608,21 @@ public final class BeastPossessionController {
                 || stack.isOf(Items.TORCHFLOWER_SEEDS);
     }
 
+    public static boolean isArmadilloFood(ItemStack stack) {
+        return stack.isOf(Items.SPIDER_EYE);
+    }
+
     public static float getParrotFoodHealing(ItemStack stack) {
         return isParrotFood(stack) ? 2.0f : 0.0f;
     }
 
+    public static float getArmadilloFoodHealing(ItemStack stack) {
+        return isArmadilloFood(stack) ? 3.0f : 0.0f;
+    }
+
     public static boolean blocksFoodUse(PlayerEntity player, ItemStack stack) {
         FoodComponent food = stack.get(DataComponentTypes.FOOD);
-        if (food == null && !isSkeletonHorseFood(stack) && !isBeeFood(stack) && !isParrotFood(stack)) return false;
+        if (food == null && !isSkeletonHorseFood(stack) && !isBeeFood(stack) && !isParrotFood(stack) && !isArmadilloFood(stack)) return false;
         EntityType<?> type = PossessionManager.getPossessedType(player);
         if (type == EntityType.ZOMBIE_HORSE) return !isZombieHorseFood(stack);
         if (type == EntityType.SKELETON_HORSE) return !isSkeletonHorseFood(stack);
@@ -586,6 +633,7 @@ public final class BeastPossessionController {
         if (type == EntityType.CAMEL) return !isCamelFood(stack);
         if (type == EntityType.BEE) return !isBeeFood(stack);
         if (type == EntityType.PARROT) return !isParrotFood(stack);
+        if (type == EntityType.ARMADILLO) return !isArmadilloFood(stack);
         return type == EntityType.ENDERMITE || type == EntityType.GOAT || type == EntityType.RABBIT
                 || type == EntityType.TURTLE || type == EntityType.SHULKER || type == EntityType.SNOW_GOLEM;
     }
@@ -601,6 +649,7 @@ public final class BeastPossessionController {
         if (type == EntityType.CAMEL) return "§cAs a camel, you can only heal from cactus.";
         if (type == EntityType.BEE) return "§cAs a bee, you can only heal from sunflowers and poppies.";
         if (type == EntityType.PARROT) return "§cAs a parrot, you can only heal from seeds.";
+        if (type == EntityType.ARMADILLO) return "§cAs an armadillo, you can only heal from spider eyes.";
         return "§cThis possession cannot heal by eating.";
     }
 
@@ -794,6 +843,35 @@ public final class BeastPossessionController {
         }
     }
 
+    private static void handleArmadilloCurlMovement(ServerPlayerEntity player) {
+        if (!BeastState.isServerArmadilloCurled(player.getUuid())) return;
+        player.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 10, 5, false, false, false));
+    }
+
+    private static void handleArmadilloSpiderFlee(ServerPlayerEntity player) {
+        if (player.age % 10 != 0) return;
+        Box box = player.getBoundingBox().expand(16.0);
+        List<MobEntity> spiders = player.getEntityWorld().getEntitiesByClass(
+                MobEntity.class,
+                box,
+                mob -> mob.isAlive() && (mob.getType() == EntityType.SPIDER || mob.getType() == EntityType.CAVE_SPIDER));
+        for (MobEntity spider : spiders) {
+            spider.setTarget(null);
+            spider.setAttacker(null);
+            spider.getNavigation().stop();
+            ZombieTargetingState.clearProvoked(spider.getUuid());
+            double dx = spider.getX() - player.getX();
+            double dz = spider.getZ() - player.getZ();
+            double len = Math.max(0.001, Math.sqrt(dx * dx + dz * dz));
+            spider.getNavigation().startMovingTo(
+                    spider.getX() + (dx / len) * 8.0,
+                    spider.getY(),
+                    spider.getZ() + (dz / len) * 8.0,
+                    1.2
+            );
+        }
+    }
+
     private static void handleAmbient(ServerPlayerEntity player) {
         if (player.age % 140 != 0 || player.getRandom().nextFloat() >= 0.35f) return;
         SoundEvent sound = getAmbientSound(player);
@@ -830,6 +908,7 @@ public final class BeastPossessionController {
         if (type == EntityType.AXOLOTL) return SoundEvents.ENTITY_AXOLOTL_IDLE_WATER;
         if (type == EntityType.SNOW_GOLEM) return SoundEvents.ENTITY_SNOW_GOLEM_AMBIENT;
         if (type == EntityType.CAMEL) return SoundEvents.ENTITY_CAMEL_AMBIENT;
+        if (type == EntityType.ARMADILLO) return SoundEvents.ENTITY_ARMADILLO_AMBIENT;
         return null;
     }
 
@@ -850,6 +929,7 @@ public final class BeastPossessionController {
         if (type == EntityType.AXOLOTL) return SoundEvents.ENTITY_AXOLOTL_HURT;
         if (type == EntityType.SNOW_GOLEM) return SoundEvents.ENTITY_SNOW_GOLEM_HURT;
         if (type == EntityType.CAMEL) return SoundEvents.ENTITY_CAMEL_HURT;
+        if (type == EntityType.ARMADILLO) return SoundEvents.ENTITY_ARMADILLO_HURT;
         return null;
     }
 
@@ -870,6 +950,7 @@ public final class BeastPossessionController {
         if (type == EntityType.AXOLOTL) return SoundEvents.ENTITY_AXOLOTL_DEATH;
         if (type == EntityType.SNOW_GOLEM) return SoundEvents.ENTITY_SNOW_GOLEM_DEATH;
         if (type == EntityType.CAMEL) return SoundEvents.ENTITY_CAMEL_DEATH;
+        if (type == EntityType.ARMADILLO) return SoundEvents.ENTITY_ARMADILLO_DEATH;
         return null;
     }
 

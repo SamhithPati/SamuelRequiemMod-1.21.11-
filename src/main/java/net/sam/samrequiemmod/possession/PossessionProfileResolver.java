@@ -92,6 +92,9 @@ public final class PossessionProfileResolver {
         if (type == EntityType.CAMEL && BabyPassiveMobState.isBaby(player)) {
             return PossessionProfiles.BABY_CAMEL_PROFILE;
         }
+        if (type == EntityType.ARMADILLO && BabyPassiveMobState.isBaby(player)) {
+            return PossessionProfiles.BABY_ARMADILLO_PROFILE;
+        }
         if (type == EntityType.PIGLIN && BabyPiglinState.isBaby(player)) {
             return PossessionProfiles.BABY_PIGLIN_PROFILE;
         }

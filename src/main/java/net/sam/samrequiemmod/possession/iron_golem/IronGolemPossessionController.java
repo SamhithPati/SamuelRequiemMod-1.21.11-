@@ -15,6 +15,7 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.Box;
+import net.sam.samrequiemmod.possession.PossessionHurtSoundHelper;
 import net.sam.samrequiemmod.possession.PossessionManager;
 import net.sam.samrequiemmod.possession.zombie.ZombieTargetingState;
 
@@ -52,9 +53,11 @@ public final class IronGolemPossessionController {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isIronGolemPossessing(player)) return true;
+            if (source.equals(player.getDamageSources().fall())
+                    || source.equals(player.getDamageSources().drown())) return true;
+            if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
-            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_IRON_GOLEM_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            PossessionHurtSoundHelper.playIfReady(player, SoundEvents.ENTITY_IRON_GOLEM_HURT, 1.0f);
             return true;
         });
 
@@ -136,6 +139,7 @@ public final class IronGolemPossessionController {
         if (!isIronGolemPossessing(player)) return;
 
         lockHunger(player);
+        refreshAir(player);
         handleSinking(player);
         handleSlimeContactDamage(player);
     }
@@ -144,6 +148,12 @@ public final class IronGolemPossessionController {
     private static void lockHunger(ServerPlayerEntity player) {
         player.getHungerManager().setFoodLevel(19);
         player.getHungerManager().setSaturationLevel(0.0f);
+    }
+
+    private static void refreshAir(ServerPlayerEntity player) {
+        if (player.getAir() < player.getMaxAir()) {
+            player.setAir(player.getMaxAir());
+        }
     }
 
     // ── Sinking in water (can't swim, but can jump) ────────────────────────

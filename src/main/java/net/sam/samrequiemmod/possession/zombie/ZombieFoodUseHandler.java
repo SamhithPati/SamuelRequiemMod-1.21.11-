@@ -58,7 +58,9 @@ public final class ZombieFoodUseHandler {
             boolean isVex = net.sam.samrequiemmod.possession.vex.VexPossessionController.isVexPossessing(serverPlayer);
             boolean isWarden = net.sam.samrequiemmod.possession.warden.WardenPossessionController.isWardenPossessing(serverPlayer);
             boolean isBreeze = net.sam.samrequiemmod.possession.breeze.BreezePossessionController.isBreezePossessing(serverPlayer);
+            boolean isNautilus = net.sam.samrequiemmod.possession.aquatic.NautilusPossessionController.isAnyNautilusPossessing(serverPlayer);
             boolean isPanda = net.sam.samrequiemmod.possession.passive.PandaPossessionController.isPandaPossessing(serverPlayer);
+            boolean isArmadillo = net.sam.samrequiemmod.possession.beast.BeastPossessionController.isArmadilloPossessing(serverPlayer);
             boolean isBeast = net.sam.samrequiemmod.possession.beast.BeastPossessionController.isTrackedType(
                     net.sam.samrequiemmod.possession.PossessionManager.getPossessedType(serverPlayer));
 
@@ -128,6 +130,20 @@ public final class ZombieFoodUseHandler {
                 return ActionResult.PASS;
             }
 
+            if (isNautilus) {
+                if (!net.sam.samrequiemmod.possession.aquatic.NautilusPossessionController.isNautilusFood(stack)) {
+                    if (net.sam.samrequiemmod.possession.aquatic.NautilusPossessionController.blocksFoodUse(stack)) {
+                        serverPlayer.sendMessage(
+                                Text.literal(net.sam.samrequiemmod.possession.aquatic.NautilusPossessionController.getFoodErrorMessage()), true);
+                        return ActionResult.FAIL;
+                    }
+                    return ActionResult.PASS;
+                }
+                EATING_ITEM.put(serverPlayer.getUuid(), stack.copy());
+                player.setCurrentHand(hand);
+                return ActionResult.CONSUME;
+            }
+
             // Enderman food — chorus fruit (no FoodComponent override, instant heal on right-click)
             boolean isEnderman = net.sam.samrequiemmod.possession.enderman.EndermanPossessionController.isEndermanPossessing(serverPlayer);
             if (isEnderman) {
@@ -148,6 +164,29 @@ public final class ZombieFoodUseHandler {
                             serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
                             net.minecraft.sound.SoundEvents.ENTITY_ENDERMAN_TELEPORT,
                             net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
+                    return ActionResult.CONSUME;
+                }
+                return ActionResult.PASS;
+            }
+
+            if (isArmadillo) {
+                if (!net.sam.samrequiemmod.possession.beast.BeastPossessionController.isArmadilloFood(stack)) {
+                    if (stack.get(DataComponentTypes.FOOD) != null) {
+                        serverPlayer.sendMessage(
+                                Text.literal(net.sam.samrequiemmod.possession.beast.BeastPossessionController.getFoodErrorMessage(serverPlayer)), true);
+                        return ActionResult.FAIL;
+                    }
+                    return ActionResult.PASS;
+                }
+                float healAmount = net.sam.samrequiemmod.possession.beast.BeastPossessionController.getArmadilloFoodHealing(stack);
+                if (healAmount > 0.0f && serverPlayer.getHealth() < serverPlayer.getMaxHealth()) {
+                    serverPlayer.setHealth(Math.min(serverPlayer.getHealth() + healAmount, serverPlayer.getMaxHealth()));
+                    if (!serverPlayer.isCreative()) stack.decrement(1);
+                    serverPlayer.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.POISON);
+                    serverPlayer.getEntityWorld().playSound(null,
+                            serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
+                            net.minecraft.sound.SoundEvents.ENTITY_ARMADILLO_EAT,
+                            net.minecraft.sound.SoundCategory.PLAYERS, 0.9f, 1.0f);
                     return ActionResult.CONSUME;
                 }
                 return ActionResult.PASS;
@@ -737,6 +776,7 @@ public final class ZombieFoodUseHandler {
         boolean isRavager = net.sam.samrequiemmod.possession.illager.RavagerPossessionController.isRavagerPossessing(player);
         boolean isWitch = net.sam.samrequiemmod.possession.illager.WitchPossessionController.isWitchPossessing(player);
         boolean isSpider = net.sam.samrequiemmod.possession.spider.SpiderPossessionController.isAnySpiderPossessing(player);
+        boolean isNautilus = net.sam.samrequiemmod.possession.aquatic.NautilusPossessionController.isAnyNautilusPossessing(player);
         boolean isZoglin = net.sam.samrequiemmod.possession.hoglin.HoglinPossessionController.isZoglinPossessing(player);
         boolean isGuardian = net.sam.samrequiemmod.possession.guardian.GuardianPossessionController.isAnyGuardianPossessing(player);
         boolean isBlaze = net.sam.samrequiemmod.possession.firemob.BlazePossessionController.isBlazePossessing(player);
@@ -753,7 +793,7 @@ public final class ZombieFoodUseHandler {
                 || net.sam.samrequiemmod.possession.piglin.BabyPiglinPossessionController.isBabyPiglinPossessing(player)
                 || net.sam.samrequiemmod.possession.piglin.PiglinBrutePossessionController.isPiglinBrutePossessing(player);
         boolean isZombifiedPiglin2 = net.sam.samrequiemmod.possession.piglin.ZombifiedPiglinPossessionController.isAnyZombifiedPiglinPossessing(player);
-        if (!isZombie && !isBabyZombie && !isHusk && !isBabyHusk && !isDrowned && !isBabyDrowned && !isZombieVillager2 && !isBabyZombieVillager2 && !isVillager2 && !isPillager && !isVindicator && !isEvoker && !isRavager && !isWitch && !isSpider && !isZoglin && !isGuardian && !isBlaze && !isGhast && !isSlime && !isWolf && !isFox && !isFeline && !isPanda && !isPassiveMob2 && !isBeast && !isPiglinType2 && !isZombifiedPiglin2) {
+        if (!isZombie && !isBabyZombie && !isHusk && !isBabyHusk && !isDrowned && !isBabyDrowned && !isZombieVillager2 && !isBabyZombieVillager2 && !isVillager2 && !isPillager && !isVindicator && !isEvoker && !isRavager && !isWitch && !isSpider && !isNautilus && !isZoglin && !isGuardian && !isBlaze && !isGhast && !isSlime && !isWolf && !isFox && !isFeline && !isPanda && !isPassiveMob2 && !isBeast && !isPiglinType2 && !isZombifiedPiglin2) {
             EATING_ITEM.remove(player.getUuid());
             return;
         }
@@ -821,6 +861,11 @@ public final class ZombieFoodUseHandler {
             }
             if (net.sam.samrequiemmod.possession.wolf.WolfPossessionController.isWolfPossessing(player)) {
                 float healAmount = net.sam.samrequiemmod.possession.wolf.WolfPossessionController.getWolfFoodHealing(tracked);
+                if (healAmount > 0.0f) player.setHealth(Math.min(player.getHealth() + healAmount, player.getMaxHealth()));
+                return;
+            }
+            if (net.sam.samrequiemmod.possession.aquatic.NautilusPossessionController.isAnyNautilusPossessing(player)) {
+                float healAmount = net.sam.samrequiemmod.possession.aquatic.NautilusPossessionController.getNautilusFoodHealing(tracked);
                 if (healAmount > 0.0f) player.setHealth(Math.min(player.getHealth() + healAmount, player.getMaxHealth()));
                 return;
             }

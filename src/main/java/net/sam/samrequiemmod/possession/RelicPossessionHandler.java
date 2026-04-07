@@ -86,7 +86,8 @@ public final class RelicPossessionHandler {
             // Aquatic mobs: cod, salmon, pufferfish, tropical fish, squid, dolphin
             if (type == EntityType.COD || type == EntityType.SALMON
                     || type == EntityType.PUFFERFISH || type == EntityType.TROPICAL_FISH
-                    || type == EntityType.SQUID || type == EntityType.DOLPHIN) {
+                    || type == EntityType.SQUID || type == EntityType.DOLPHIN
+                    || type == EntityType.NAUTILUS || type == EntityType.ZOMBIE_NAUTILUS) {
                 // Capture tropical fish variant before discarding the entity
                 if (type == EntityType.TROPICAL_FISH
                         && entity instanceof net.minecraft.entity.passive.TropicalFishEntity tropicalFish) {
@@ -427,6 +428,16 @@ public final class RelicPossessionHandler {
                 if (entity instanceof net.minecraft.entity.passive.CamelEntity camelEntity) {
                     net.sam.samrequiemmod.possession.beast.BeastPossessionController.initializePassiveBaby(serverPlayer, camelEntity);
                 }
+                float mobHealth = livingTarget.getHealth();
+                PossessionManager.startPossession(serverPlayer, type, mobHealth);
+                PossessionNetworking.broadcastPossessionSync(serverPlayer, type);
+                net.sam.samrequiemmod.possession.beast.BeastPossessionController.syncState(serverPlayer);
+                entity.discard();
+                return ActionResult.SUCCESS;
+            }
+
+            if (type == EntityType.ARMADILLO && entity instanceof net.minecraft.entity.passive.ArmadilloEntity armadillo) {
+                net.sam.samrequiemmod.possession.beast.BeastPossessionController.initializePassiveBaby(serverPlayer, armadillo);
                 float mobHealth = livingTarget.getHealth();
                 PossessionManager.startPossession(serverPlayer, type, mobHealth);
                 PossessionNetworking.broadcastPossessionSync(serverPlayer, type);

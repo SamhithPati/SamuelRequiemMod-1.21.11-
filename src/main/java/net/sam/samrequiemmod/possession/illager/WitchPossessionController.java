@@ -10,6 +10,7 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.mob.WitchEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.thrown.SplashPotionEntity;
 import net.minecraft.item.ItemStack;
@@ -99,7 +100,7 @@ public final class WitchPossessionController {
                 if (attacker instanceof MobEntity mob)
                     ZombieTargetingState.markProvoked(mob.getUuid(), player.getUuid());
                 if (attacker instanceof LivingEntity livingAttacker) {
-                    Box box = player.getBoundingBox().expand(40.0);
+                Box box = player.getBoundingBox().expand(60.0);
                     for (MobEntity mob : player.getEntityWorld()
                             .getEntitiesByClass(MobEntity.class, box,
                                     m -> PillagerPossessionController.isRallyMob(m) && m.isAlive())) {
@@ -238,15 +239,32 @@ public final class WitchPossessionController {
 
         boolean isAlly = PillagerPossessionController.isIllagerAlly(target);
 
-        if (!isAlly) {
-            return;
+        if (isAlly) {
+            // Throw regen splash at allies only (illagers & ravagers)
+            throwVisualPotion(player, target, Potions.REGENERATION);
+        } else {
+            throwVisualPotion(player, target, chooseOffensivePotion(player, target, dist));
         }
-
-        // Throw regen splash at allies only (illagers & ravagers)
-        throwVisualPotion(player, target, Potions.REGENERATION);
 
         player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_WITCH_THROW, SoundCategory.PLAYERS, 1.0f, 1.0f);
+    }
+
+    private static net.minecraft.registry.entry.RegistryEntry<net.minecraft.potion.Potion> chooseOffensivePotion(
+            ServerPlayerEntity player,
+            LivingEntity target,
+            double distance
+    ) {
+        if (distance >= 8.0 && !target.hasStatusEffect(StatusEffects.SLOWNESS)) {
+            return Potions.SLOWNESS;
+        }
+        if (target.getHealth() >= 8.0f && !target.hasStatusEffect(StatusEffects.POISON)) {
+            return Potions.POISON;
+        }
+        if (distance <= 3.0 && !target.hasStatusEffect(StatusEffects.WEAKNESS) && !(target instanceof WitchEntity)) {
+            return Potions.WEAKNESS;
+        }
+        return Potions.HARMING;
     }
 
     private static void throwVisualPotion(ServerPlayerEntity player, LivingEntity target,
@@ -277,7 +295,7 @@ public final class WitchPossessionController {
             LAST_ATTACKER.remove(player.getUuid());
             return;
         }
-        Box box = player.getBoundingBox().expand(40.0);
+        Box box = player.getBoundingBox().expand(60.0);
         for (MobEntity ally : player.getEntityWorld()
                 .getEntitiesByClass(MobEntity.class, box,
                         m -> PillagerPossessionController.isRallyMob(m) && m.isAlive())) {
