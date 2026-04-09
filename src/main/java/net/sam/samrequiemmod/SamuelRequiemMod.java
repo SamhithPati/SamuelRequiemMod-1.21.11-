@@ -14,6 +14,7 @@ import net.sam.samrequiemmod.possession.PossessionManager;
 import net.sam.samrequiemmod.possession.PossessionNetworking;
 import net.sam.samrequiemmod.world.ModStructures;
 import net.sam.samrequiemmod.world.ShrineCommand;
+import net.sam.samrequiemmod.world.SoulShrineMapTrades;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.sam.samrequiemmod.possession.RelicPossessionHandler;
@@ -75,6 +76,8 @@ public class SamuelRequiemMod implements ModInitializer {
 		net.sam.samrequiemmod.possession.guardian.GuardianNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.warden.WardenNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.breeze.BreezeNetworking.registerCommon();
+		net.sam.samrequiemmod.possession.wither.WitherNetworking.registerCommon();
+		net.sam.samrequiemmod.possession.creaking.CreakingNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.silverfish.SilverfishHideNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.firemob.FireMobNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.slime.SlimeSizeNetworking.registerCommon();
@@ -83,6 +86,7 @@ public class SamuelRequiemMod implements ModInitializer {
 		net.sam.samrequiemmod.possession.feline.CatNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.vex.VexNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.villager.VillagerNetworking.registerCommon();
+		net.sam.samrequiemmod.possession.trader.WanderingTraderNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.beast.BeastNetworking.registerCommon();
 		net.sam.samrequiemmod.possession.beast.BeastAttackNetworking.registerCommon();
 
@@ -95,11 +99,13 @@ public class SamuelRequiemMod implements ModInitializer {
 				SoulBossEntity.createAttributes()
 		);
 		ModStructures.register();
+		SoulShrineMapTrades.register();
 		net.sam.samrequiemmod.world.ModLootTableModifiers.register();
 		ShrineCommand.register();
 		PossessionCommand.register();
 		RelicPossessionHandler.register();
 		RelicUnpossessHandler.register();
+		net.sam.samrequiemmod.possession.PossessionLoadoutProtection.register();
 		ZombiePossessionController.register();
 		BabyZombiePossessionController.register();
 		HuskPossessionController.register();
@@ -112,6 +118,7 @@ public class SamuelRequiemMod implements ModInitializer {
 		net.sam.samrequiemmod.possession.illager.VindicatorPossessionController.register();
 		net.sam.samrequiemmod.possession.illager.EvokerPossessionController.register();
 		net.sam.samrequiemmod.possession.illager.EvokerNetworking.registerServer();
+		net.sam.samrequiemmod.possession.illager.IllagerRavagerCallController.register();
 		net.sam.samrequiemmod.possession.zombie.ChickenJumpNetworking.registerServer();
 		net.sam.samrequiemmod.possession.zombie.ZombieHorseRidingHandler.register();
 		net.sam.samrequiemmod.possession.illager.RavagerJumpNetworking.registerServer();
@@ -122,6 +129,7 @@ public class SamuelRequiemMod implements ModInitializer {
 		net.sam.samrequiemmod.possession.illager.WitchPossessionController.register();
 		net.sam.samrequiemmod.possession.illager.WitchNetworking.registerServer();
 		net.sam.samrequiemmod.possession.illager.CaptainHandler.register();
+		net.sam.samrequiemmod.possession.illager.RaidSpawnRelocationHelper.register();
 		net.sam.samrequiemmod.possession.passive.PassiveMobPossessionController.register();
 		net.sam.samrequiemmod.possession.passive.MooshroomPossessionController.register();
 		net.sam.samrequiemmod.possession.passive.MooshroomNetworking.registerServer();
@@ -152,6 +160,10 @@ public class SamuelRequiemMod implements ModInitializer {
 		net.sam.samrequiemmod.possession.warden.WardenNetworking.registerServer();
 		net.sam.samrequiemmod.possession.breeze.BreezePossessionController.register();
 		net.sam.samrequiemmod.possession.breeze.BreezeNetworking.registerServer();
+		net.sam.samrequiemmod.possession.wither.WitherPossessionController.register();
+		net.sam.samrequiemmod.possession.wither.WitherNetworking.registerServer();
+		net.sam.samrequiemmod.possession.creaking.CreakingPossessionController.register();
+		net.sam.samrequiemmod.possession.creaking.CreakingNetworking.registerServer();
 		net.sam.samrequiemmod.possession.silverfish.SilverfishPossessionController.register();
 		net.sam.samrequiemmod.possession.silverfish.SilverfishHideNetworking.registerServer();
 		net.sam.samrequiemmod.possession.firemob.FireMobNetworking.registerServer();
@@ -166,6 +178,8 @@ public class SamuelRequiemMod implements ModInitializer {
 		net.sam.samrequiemmod.possession.vex.VexPossessionController.register();
 		net.sam.samrequiemmod.possession.bat.BatPossessionController.register();
 		net.sam.samrequiemmod.possession.villager.VillagerPossessionController.register();
+		net.sam.samrequiemmod.possession.trader.WanderingTraderPossessionController.register();
+		net.sam.samrequiemmod.possession.trader.WanderingTraderNetworking.registerServer();
 		net.sam.samrequiemmod.possession.beast.BeastNetworking.registerServer();
 		net.sam.samrequiemmod.possession.beast.BeastPossessionController.register();
 		net.sam.samrequiemmod.possession.piglin.PiglinPossessionController.register();
@@ -227,6 +241,14 @@ public class SamuelRequiemMod implements ModInitializer {
 						} else if (net.sam.samrequiemmod.possession.breeze.BreezePossessionController.isBreezePossessing(player)) {
 							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_BREEZE_DEATH,
+									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
+						} else if (net.sam.samrequiemmod.possession.wither.WitherPossessionController.isWitherPossessing(player)) {
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+									net.minecraft.sound.SoundEvents.ENTITY_WITHER_DEATH,
+									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
+						} else if (net.sam.samrequiemmod.possession.creaking.CreakingPossessionController.isCreakingPossessing(player)) {
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+									net.minecraft.sound.SoundEvents.ENTITY_CREAKING_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.creeper.CreeperPossessionController.isCreeperPossessing(player)) {
 							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
@@ -312,6 +334,10 @@ public class SamuelRequiemMod implements ModInitializer {
 							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
 									net.minecraft.sound.SoundEvents.ENTITY_VILLAGER_DEATH,
 									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, pitch);
+						} else if (net.sam.samrequiemmod.possession.trader.WanderingTraderPossessionController.isWanderingTraderPossessing(player)) {
+							player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
+									net.minecraft.sound.SoundEvents.ENTITY_WANDERING_TRADER_DEATH,
+									net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
 						} else if (net.sam.samrequiemmod.possession.beast.BeastPossessionController.isTrackedType(PossessionManager.getPossessedType(player))) {
 							net.minecraft.sound.SoundEvent deathSound =
 									net.sam.samrequiemmod.possession.beast.BeastPossessionController.isShulkerPossessing(player)
@@ -633,6 +659,7 @@ public class SamuelRequiemMod implements ModInitializer {
 					net.sam.samrequiemmod.possession.illager.PillagerPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.illager.VindicatorPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.illager.EvokerPossessionController.tick(player);
+					net.sam.samrequiemmod.possession.illager.IllagerRavagerCallController.tick(player);
 					net.sam.samrequiemmod.possession.illager.CaptainHandler.tick(player);
 					net.sam.samrequiemmod.possession.illager.RaidHandler.tick(player);
 					net.sam.samrequiemmod.possession.illager.RavagerPossessionController.tick(player);
@@ -672,6 +699,8 @@ public class SamuelRequiemMod implements ModInitializer {
 					net.sam.samrequiemmod.possession.guardian.GuardianPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.warden.WardenPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.breeze.BreezePossessionController.tick(player);
+					net.sam.samrequiemmod.possession.wither.WitherPossessionController.tick(player);
+					net.sam.samrequiemmod.possession.creaking.CreakingPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.silverfish.SilverfishPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.firemob.BlazePossessionController.tick(player);
 					net.sam.samrequiemmod.possession.firemob.GhastPossessionController.tick(player);
@@ -682,6 +711,7 @@ public class SamuelRequiemMod implements ModInitializer {
 					net.sam.samrequiemmod.possession.vex.VexPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.bat.BatPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.villager.VillagerPossessionController.tick(player);
+					net.sam.samrequiemmod.possession.trader.WanderingTraderPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.beast.BeastPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.piglin.PiglinPossessionController.tick(player);
 					net.sam.samrequiemmod.possession.piglin.BabyPiglinPossessionController.tick(player);
@@ -745,6 +775,9 @@ public class SamuelRequiemMod implements ModInitializer {
 		if (net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isVillagerPossessing(owner)) {
 			return mob instanceof net.minecraft.entity.passive.IronGolemEntity;
 		}
+		if (net.sam.samrequiemmod.possession.trader.WanderingTraderPossessionController.isWanderingTraderPossessing(owner)) {
+			return mob instanceof net.minecraft.entity.passive.IronGolemEntity;
+		}
 		if (net.sam.samrequiemmod.possession.beast.BeastPossessionController.isTrackedType(
 				net.sam.samrequiemmod.possession.PossessionManager.getPossessedType(owner))) {
 			var type = net.sam.samrequiemmod.possession.PossessionManager.getPossessedType(owner);
@@ -788,6 +821,7 @@ public class SamuelRequiemMod implements ModInitializer {
 						|| net.sam.samrequiemmod.possession.firemob.GhastPossessionController.isGhastPossessing(player)
 						|| net.sam.samrequiemmod.possession.skeleton.WitherSkeletonPossessionController.isWitherSkeletonPossessing(player)
 						|| net.sam.samrequiemmod.possession.warden.WardenPossessionController.isWardenPossessing(player)
+						|| net.sam.samrequiemmod.possession.wither.WitherPossessionController.isWitherPossessing(player)
 						|| net.sam.samrequiemmod.possession.piglin.PiglinPossessionController.isAnyPiglinPossessing(player)
 						|| net.sam.samrequiemmod.possession.piglin.PiglinBrutePossessionController.isPiglinBrutePossessing(player)
 						|| net.sam.samrequiemmod.possession.piglin.ZombifiedPiglinPossessionController.isAnyZombifiedPiglinPossessing(player)

@@ -60,6 +60,9 @@ public class SamuelRequiemModClient implements ClientModInitializer {
         net.sam.samrequiemmod.client.WardenHudRenderer.register();
         net.sam.samrequiemmod.possession.breeze.BreezeNetworking.registerClient();
         net.sam.samrequiemmod.client.BreezeHudRenderer.register();
+        net.sam.samrequiemmod.possession.wither.WitherNetworking.registerClient();
+        net.sam.samrequiemmod.client.WitherHudRenderer.register();
+        net.sam.samrequiemmod.possession.creaking.CreakingNetworking.registerClient();
         net.sam.samrequiemmod.client.SilverfishHideClientHandler.register();
         net.sam.samrequiemmod.possession.firemob.FireMobNetworking.registerClient();
         net.sam.samrequiemmod.client.FireMobAttackClientHandler.register();
@@ -69,6 +72,7 @@ public class SamuelRequiemModClient implements ClientModInitializer {
         net.sam.samrequiemmod.possession.feline.CatNetworking.registerClient();
         net.sam.samrequiemmod.possession.vex.VexNetworking.registerClient();
         net.sam.samrequiemmod.possession.villager.VillagerNetworking.registerClient();
+        net.sam.samrequiemmod.possession.trader.WanderingTraderNetworking.registerClient();
         net.sam.samrequiemmod.possession.beast.BeastNetworking.registerClient();
         net.sam.samrequiemmod.possession.beast.BeastAttackNetworking.registerClient();
 
@@ -77,6 +81,7 @@ public class SamuelRequiemModClient implements ClientModInitializer {
             EntityType<?> type = ClientPossessionState.get(client.player);
             boolean fireproof = type == EntityType.BLAZE
                     || type == EntityType.GHAST
+                    || type == EntityType.WITHER
                     || type == EntityType.WITHER_SKELETON
                     || type == EntityType.WARDEN
                     || type == EntityType.MAGMA_CUBE
@@ -95,6 +100,7 @@ public class SamuelRequiemModClient implements ClientModInitializer {
             ClientPossessionState.clearAll();
             net.sam.samrequiemmod.possession.passive.SheepAppearanceState.clearAllClient();
             net.sam.samrequiemmod.possession.passive.PandaAppearanceState.clearAllClient();
+            net.sam.samrequiemmod.possession.trader.WanderingTraderState.clearAllClient();
         });
     }
 }

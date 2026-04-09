@@ -98,8 +98,8 @@ public final class EndermanPossessionController {
             }
 
             // Play hurt sound
-            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_ENDERMAN_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_ENDERMAN_HURT, 1.0f);
             return true;
         });
 

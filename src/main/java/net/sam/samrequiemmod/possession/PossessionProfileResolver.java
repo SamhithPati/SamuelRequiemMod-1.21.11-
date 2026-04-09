@@ -68,6 +68,9 @@ public final class PossessionProfileResolver {
         if (type == EntityType.HORSE && BabyPassiveMobState.isBaby(player)) {
             return PossessionProfiles.BABY_HORSE_PROFILE;
         }
+        if (type == EntityType.DONKEY && BabyPassiveMobState.isBaby(player)) {
+            return PossessionProfiles.BABY_DONKEY_PROFILE;
+        }
         if (type == EntityType.MULE && BabyPassiveMobState.isBaby(player)) {
             return PossessionProfiles.BABY_MULE_PROFILE;
         }

@@ -55,8 +55,8 @@ public final class GhastPossessionController {
                 return false;
             }
 
-            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_GHAST_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_GHAST_HURT, 1.0f);
 
             if (source.getAttacker() instanceof MobEntity mob) {
                 ZombieTargetingState.markProvoked(mob.getUuid(), player.getUuid());

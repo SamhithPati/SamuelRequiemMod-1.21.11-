@@ -146,7 +146,9 @@ public final class PiglinPossessionController {
 
         lockHunger(player);
         preventNaturalHealing(player);
-        ensurePiglinItems(player);
+        if (player.currentScreenHandler.getCursorStack().isEmpty() && player.age % 10 == 0) {
+            ensurePiglinItems(player);
+        }
         tickArmsRaised(player);
         handleOverworldConversion(player);
 
@@ -286,6 +288,9 @@ public final class PiglinPossessionController {
 
     // ── Item management ───────────────────────────────────────────────────────
     private static void ensurePiglinItems(ServerPlayerEntity player) {
+        if (!player.currentScreenHandler.getCursorStack().isEmpty()) {
+            return;
+        }
         if (ITEMS_GIVEN.contains(player.getUuid())) {
             ensureArrows(player);
             ensureUnbreakable(player, Items.GOLDEN_SWORD);
@@ -326,9 +331,15 @@ public final class PiglinPossessionController {
     }
 
     static void ensureArrows(ServerPlayerEntity player) {
+        if (!player.currentScreenHandler.getCursorStack().isEmpty()) {
+            return;
+        }
         boolean has = false;
         for (int i = 0; i < player.getInventory().size(); i++)
             if (player.getInventory().getStack(i).isOf(Items.ARROW)) { has = true; break; }
+        if (!has && player.currentScreenHandler.getCursorStack().isOf(Items.ARROW)) {
+            has = true;
+        }
         if (!has) player.getInventory().offerOrDrop(new ItemStack(Items.ARROW, 64));
     }
 

@@ -8,6 +8,7 @@ import net.minecraft.entity.mob.SlimeEntity;
 import net.minecraft.entity.mob.WitchEntity;
 import net.minecraft.entity.mob.WardenEntity;
 import net.minecraft.entity.mob.BreezeEntity;
+import net.minecraft.entity.mob.CreakingEntity;
 import net.minecraft.entity.passive.IronGolemEntity;
 import net.minecraft.entity.passive.CatEntity;
 import net.minecraft.entity.passive.FoxEntity;
@@ -65,10 +66,21 @@ public abstract class MobEntityTargetMixin {
                 net.sam.samrequiemmod.possession.passive.PassiveMobPossessionController.isPassiveMobPossessing(serverPlayer);
         boolean isChickenPossessed =
                 PossessionManager.getPossessedType(serverPlayer) == EntityType.CHICKEN;
+        boolean isSnifferPossessed =
+                PossessionManager.getPossessedType(serverPlayer) == EntityType.SNIFFER;
         boolean chickenPredator = self instanceof FoxEntity
                 || self instanceof OcelotEntity
                 || (self instanceof CatEntity cat && !cat.isTamed());
-        if (isPassiveMobPossessed && !(isChickenPossessed && chickenPredator)) {
+        if (isPassiveMobPossessed
+                && !(isChickenPossessed && chickenPredator)
+                && !(isSnifferPossessed
+                && net.sam.samrequiemmod.possession.passive.PassiveMobPossessionController.isSnifferAlwaysHostile(self))) {
+            ci.cancel();
+            return;
+        }
+
+        if (self instanceof WitherEntity
+                && net.sam.samrequiemmod.possession.wither.WitherPossessionController.isWitherPossessing(serverPlayer)) {
             ci.cancel();
             return;
         }
@@ -183,6 +195,40 @@ public abstract class MobEntityTargetMixin {
                 return;
             }
             if (self instanceof BreezeEntity) {
+                ci.cancel();
+                return;
+            }
+            if (!ZombieTargetingState.isProvoked(self.getUuid())) {
+                ci.cancel();
+                return;
+            }
+        }
+
+        boolean isWitherPossessed =
+                net.sam.samrequiemmod.possession.wither.WitherPossessionController.isWitherPossessing(serverPlayer);
+        if (isWitherPossessed) {
+            if (self instanceof IronGolemEntity || self instanceof WardenEntity
+                    || self instanceof net.minecraft.entity.mob.ZoglinEntity) {
+                return;
+            }
+            if (self instanceof WitherEntity) {
+                ci.cancel();
+                return;
+            }
+            if (!ZombieTargetingState.isProvoked(self.getUuid())) {
+                ci.cancel();
+                return;
+            }
+        }
+
+        boolean isCreakingPossessed =
+                net.sam.samrequiemmod.possession.creaking.CreakingPossessionController.isCreakingPossessing(serverPlayer);
+        if (isCreakingPossessed) {
+            if (self instanceof WardenEntity || self instanceof WitherEntity
+                    || self instanceof net.minecraft.entity.mob.ZoglinEntity) {
+                return;
+            }
+            if (self instanceof CreakingEntity && !ZombieTargetingState.isProvoked(self.getUuid())) {
                 ci.cancel();
                 return;
             }
@@ -349,7 +395,8 @@ public abstract class MobEntityTargetMixin {
         }
 
         boolean isVillagerPossessed =
-                net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isVillagerPossessing(serverPlayer);
+                net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isVillagerPossessing(serverPlayer)
+                        || net.sam.samrequiemmod.possession.trader.WanderingTraderPossessionController.isWanderingTraderPossessing(serverPlayer);
         if (isVillagerPossessed) {
             if (self instanceof IronGolemEntity) {
                 ci.cancel();

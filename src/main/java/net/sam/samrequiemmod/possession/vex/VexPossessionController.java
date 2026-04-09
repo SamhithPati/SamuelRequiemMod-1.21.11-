@@ -82,8 +82,8 @@ public final class VexPossessionController {
                 return false;
             }
 
-            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_VEX_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_VEX_HURT, 1.0f);
 
             if (source.getAttacker() instanceof LivingEntity attacker) {
                 if (attacker instanceof MobEntity mob && !isVexAlly(attacker)) {

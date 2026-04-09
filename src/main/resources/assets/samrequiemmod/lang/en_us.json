@@ -1,6 +1,8 @@
 {
   "item.samrequiemmod.possession_relic": "Possession Relic",
   "item.samrequiemmod.possession_relic_shard": "Possession Relic Shard",
+  "item.samrequiemmod.ravager_call": "Ravager Call",
+  "filled_map.samrequiemmod.soul_shrine": "Map to Nearest Soul Shrine",
   "entity.samrequiemmod.corrupted_merchant": "Soul Trader",
   "entity.samrequiemmod.soul_boss": "Soul Boss"
 }

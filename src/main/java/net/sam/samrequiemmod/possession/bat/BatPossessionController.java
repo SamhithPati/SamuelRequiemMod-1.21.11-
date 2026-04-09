@@ -36,8 +36,8 @@ public final class BatPossessionController {
             if (!(entity instanceof ServerPlayerEntity player)) return true;
             if (!isBatPossessing(player)) return true;
             if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
-            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_BAT_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_BAT_HURT, 1.0f);
             return true;
         });
 

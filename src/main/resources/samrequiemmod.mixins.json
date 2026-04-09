@@ -15,6 +15,7 @@
 		"WolfEntitySoundVariantAccessor",
 		"PlayerEntityDimensionsMixin",
 		"PlayerEntityEyeHeightMixin",
+		"ServerPlayNetworkHandlerDropMixin",
 		"PlayerEntityJumpMixin",
 		"LivingEntitySwimUpwardMixin",
 		"PlayerNoSwimMovementMixin",
@@ -46,6 +47,11 @@
 		"RavagerEntityMixin$MountedHeightMixin",
 		"RavagerEntityMixin$TickMixin",
 		"RavagerEntityMixin$TravelMixin",
+		"CamelHuskEntityMixin$CanAddPassengerMixin",
+		"CamelHuskEntityMixin$InteractMixin",
+		"CamelHuskEntityMixin$ControllingPassengerMixin",
+		"CamelHuskEntityMixin$MountedHeightMixin",
+		"CamelHuskEntityMixin$TickMixin",
 		"ZombieHorseEntityMixin$CanAddPassengerMixin",
 		"ZombieHorseEntityMixin$InteractMixin",
 		"ZombieHorseEntityMixin$MountedHeightMixin",
@@ -60,6 +66,7 @@
 		"client.TropicalFishEntityVariantAccessor"
 	],
 	"client": [
+		"client.HeldItemRendererMixin",
 		"client.IllagerEntityStateAccessor",
 		"client.PillagerEntityMixin",
 		"client.LivingEntityRendererMixin",

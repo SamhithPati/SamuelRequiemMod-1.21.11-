@@ -127,7 +127,9 @@ public final class SkeletonPossessionController {
         if (!isAnySkeletonPossessing(player)) return;
 
         lockHunger(player);
-        ensureSkeletonItems(player);
+        if (player.age % 10 == 0 && player.currentScreenHandler.getCursorStack().isEmpty()) {
+            ensureSkeletonItems(player);
+        }
         handleSunlightBurn(player);
         handleAmbientSound(player);
         preventSwimming(player);
@@ -140,6 +142,9 @@ public final class SkeletonPossessionController {
 
     // ── Item management ───────────────────────────────────────────────────────
     private static void ensureSkeletonItems(ServerPlayerEntity player) {
+        if (!player.currentScreenHandler.getCursorStack().isEmpty()) {
+            return;
+        }
         normalizeAmmo(player);
         if (ITEMS_GIVEN.contains(player.getUuid())) {
             ensureArrows(player);
@@ -207,6 +212,9 @@ public final class SkeletonPossessionController {
     }
 
     static void ensureArrows(ServerPlayerEntity player) {
+        if (!player.currentScreenHandler.getCursorStack().isEmpty()) {
+            return;
+        }
         normalizeAmmo(player);
         EntityType<?> type = PossessionManager.getPossessedType(player);
         boolean hasTipped = false;
@@ -215,6 +223,19 @@ public final class SkeletonPossessionController {
             ItemStack s = player.getInventory().getStack(i);
             if (s.isOf(Items.TIPPED_ARROW)) hasTipped = true;
             if (s.isOf(Items.ARROW)) hasNormal = true;
+        }
+
+        ItemStack cursorStack = player.currentScreenHandler.getCursorStack();
+        if (!cursorStack.isEmpty()) {
+            if (type == EntityType.BOGGED) {
+                hasTipped |= cursorStack.isOf(Items.TIPPED_ARROW) && isPotionArrow(cursorStack, Potions.POISON);
+            } else if (type == EntityType.PARCHED) {
+                hasTipped |= cursorStack.isOf(Items.TIPPED_ARROW) && isPotionArrow(cursorStack, Potions.WEAKNESS);
+            } else if (type == EntityType.STRAY) {
+                hasTipped |= cursorStack.isOf(Items.TIPPED_ARROW) && isPotionArrow(cursorStack, Potions.SLOWNESS);
+            } else if (type == EntityType.SKELETON) {
+                hasNormal |= cursorStack.isOf(Items.ARROW);
+            }
         }
 
         if (type == EntityType.BOGGED && !hasTipped) {
@@ -232,30 +253,86 @@ public final class SkeletonPossessionController {
             arrows.set(DataComponentTypes.POTION_CONTENTS,
                     new PotionContentsComponent(Potions.SLOWNESS));
             player.getInventory().offerOrDrop(arrows);
-        } else if ((type == EntityType.SKELETON || type == EntityType.PARCHED) && !hasNormal) {
+        } else if (type == EntityType.SKELETON && !hasNormal) {
             player.getInventory().offerOrDrop(new ItemStack(Items.ARROW, 64));
         }
     }
 
     private static void normalizeAmmo(ServerPlayerEntity player) {
-        if (!isParchedPossessing(player)) return;
+        if (!player.currentScreenHandler.getCursorStack().isEmpty()) {
+            return;
+        }
+        EntityType<?> type = PossessionManager.getPossessedType(player);
+        int ammoStacksFound = 0;
+        int singleAmmoSlot = -1;
+
+        for (int i = 0; i < player.getInventory().size(); i++) {
+            ItemStack stack = player.getInventory().getStack(i);
+            if (stack.isEmpty()) continue;
+            if (stack.isOf(Items.ARROW) || stack.isOf(Items.TIPPED_ARROW)) {
+                ammoStacksFound++;
+                singleAmmoSlot = i;
+            }
+        }
+
+        if (ammoStacksFound <= 1) {
+            if (singleAmmoSlot >= 0) {
+                ItemStack stack = player.getInventory().getStack(singleAmmoSlot);
+                boolean validAmmo = false;
+                if (type == EntityType.BOGGED) {
+                    validAmmo = stack.isOf(Items.TIPPED_ARROW) && isPotionArrow(stack, Potions.POISON);
+                } else if (type == EntityType.PARCHED) {
+                    validAmmo = stack.isOf(Items.TIPPED_ARROW) && isPotionArrow(stack, Potions.WEAKNESS);
+                } else if (type == EntityType.STRAY) {
+                    validAmmo = stack.isOf(Items.TIPPED_ARROW) && isPotionArrow(stack, Potions.SLOWNESS);
+                } else if (type == EntityType.SKELETON) {
+                    validAmmo = stack.isOf(Items.ARROW);
+                }
+
+                if (!validAmmo) {
+                    player.getInventory().setStack(singleAmmoSlot, ItemStack.EMPTY);
+                }
+            }
+            return;
+        }
+
+        int keptAmmoSlot = -1;
 
         for (int i = player.getInventory().size() - 1; i >= 0; i--) {
             ItemStack stack = player.getInventory().getStack(i);
             if (stack.isEmpty()) continue;
-            if (stack.isOf(Items.ARROW)) {
-                player.getInventory().setStack(i, ItemStack.EMPTY);
-                continue;
+
+            boolean validAmmo = false;
+            if (type == EntityType.BOGGED) {
+                validAmmo = stack.isOf(Items.TIPPED_ARROW) && isPotionArrow(stack, Potions.POISON);
+            } else if (type == EntityType.PARCHED) {
+                validAmmo = stack.isOf(Items.TIPPED_ARROW) && isPotionArrow(stack, Potions.WEAKNESS);
+            } else if (type == EntityType.STRAY) {
+                validAmmo = stack.isOf(Items.TIPPED_ARROW) && isPotionArrow(stack, Potions.SLOWNESS);
+            } else if (type == EntityType.SKELETON) {
+                validAmmo = stack.isOf(Items.ARROW);
             }
-            if (stack.isOf(Items.TIPPED_ARROW) && !isWeaknessArrow(stack)) {
-                player.getInventory().setStack(i, ItemStack.EMPTY);
+
+            if (stack.isOf(Items.ARROW) || stack.isOf(Items.TIPPED_ARROW)) {
+                if (!validAmmo) {
+                    player.getInventory().setStack(i, ItemStack.EMPTY);
+                    continue;
+                }
+                if (keptAmmoSlot == -1) {
+                    if (stack.getCount() != 64) {
+                        stack.setCount(64);
+                    }
+                    keptAmmoSlot = i;
+                } else {
+                    player.getInventory().setStack(i, ItemStack.EMPTY);
+                }
             }
         }
     }
 
-    private static boolean isWeaknessArrow(ItemStack stack) {
+    private static boolean isPotionArrow(ItemStack stack, net.minecraft.registry.entry.RegistryEntry<net.minecraft.potion.Potion> potion) {
         PotionContentsComponent contents = stack.get(DataComponentTypes.POTION_CONTENTS);
-        return contents != null && contents.matches(Potions.WEAKNESS);
+        return contents != null && contents.matches(potion);
     }
 
     // ── Hunger lock ───────────────────────────────────────────────────────────

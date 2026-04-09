@@ -74,6 +74,8 @@ public final class PossessionEffects {
             profile = PossessionProfiles.BABY_CAT_PROFILE;
         } else if (type == EntityType.HORSE && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
             profile = PossessionProfiles.BABY_HORSE_PROFILE;
+        } else if (type == EntityType.DONKEY && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
+            profile = PossessionProfiles.BABY_DONKEY_PROFILE;
         } else if (type == EntityType.MULE && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {
             profile = PossessionProfiles.BABY_MULE_PROFILE;
         } else if (type == EntityType.GOAT && net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isServerBaby(player)) {

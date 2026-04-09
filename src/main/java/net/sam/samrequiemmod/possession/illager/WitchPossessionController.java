@@ -84,8 +84,8 @@ public final class WitchPossessionController {
             if (!isWitchPossessing(player)) return true;
             if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
-            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_WITCH_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_WITCH_HURT, 1.0f);
 
             // Start regen drink if not already drinking and doesn't have regen
             if (!DRINKING_UNTIL.containsKey(player.getUuid())

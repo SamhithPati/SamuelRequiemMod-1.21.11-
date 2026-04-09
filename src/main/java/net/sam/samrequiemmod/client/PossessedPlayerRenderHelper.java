@@ -29,11 +29,13 @@ import net.minecraft.entity.mob.ZombieVillagerEntity;
 import net.minecraft.entity.mob.RavagerEntity;
 import net.minecraft.entity.mob.WitchEntity;
 import net.minecraft.entity.mob.WardenEntity;
+import net.minecraft.entity.boss.WitherEntity;
 import net.minecraft.entity.mob.BreezeEntity;
 import net.minecraft.entity.mob.ZombieEntity;
 import net.minecraft.entity.mob.EndermanEntity;
 import net.minecraft.entity.mob.CreeperEntity;
 import net.minecraft.entity.mob.CaveSpiderEntity;
+import net.minecraft.entity.mob.CreakingEntity;
 import net.minecraft.entity.mob.HoglinEntity;
 import net.minecraft.entity.mob.GuardianEntity;
 import net.minecraft.entity.mob.SilverfishEntity;
@@ -55,6 +57,7 @@ import net.minecraft.entity.passive.CowEntity;
 import net.minecraft.entity.passive.CowVariant;
 import net.minecraft.entity.passive.CowVariants;
 import net.minecraft.entity.passive.DolphinEntity;
+import net.minecraft.entity.passive.DonkeyEntity;
 import net.minecraft.entity.passive.FoxEntity;
 import net.minecraft.entity.passive.FrogEntity;
 import net.minecraft.entity.passive.IronGolemEntity;
@@ -83,11 +86,13 @@ import net.minecraft.entity.passive.MuleEntity;
 import net.minecraft.entity.passive.PolarBearEntity;
 import net.minecraft.entity.passive.RabbitEntity;
 import net.minecraft.entity.passive.SnowGolemEntity;
+import net.minecraft.entity.passive.SnifferEntity;
 import net.minecraft.entity.passive.StriderEntity;
 import net.minecraft.entity.passive.TurtleEntity;
 import net.minecraft.entity.passive.CodEntity;
 import net.minecraft.entity.passive.SalmonEntity;
 import net.minecraft.entity.passive.TropicalFishEntity;
+import net.minecraft.entity.passive.WanderingTraderEntity;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
@@ -97,6 +102,7 @@ import net.minecraft.village.VillagerData;
 import net.minecraft.village.VillagerProfession;
 import net.minecraft.village.VillagerType;
 import net.minecraft.world.World;
+import net.minecraft.util.Hand;
 import net.sam.samrequiemmod.client.CrossbowAnimationOverride;
 import net.sam.samrequiemmod.possession.ClientPossessionState;
 import net.sam.samrequiemmod.possession.passive.PandaAppearanceState;
@@ -140,6 +146,7 @@ public final class PossessedPlayerRenderHelper {
     private static GuardianEntity cachedGuardian;
     private static SilverfishEntity cachedSilverfish;
     private static BlazeEntity cachedBlaze;
+    private static CreakingEntity cachedCreaking;
     private static ZombieVillagerEntity cachedZombieVillager;
     private static RavagerEntity cachedRavager;
     private static WitchEntity cachedWitch;
@@ -157,6 +164,7 @@ public final class PossessedPlayerRenderHelper {
     private static WitherSkeletonEntity cachedWitherSkeleton;
     private static EndermanEntity cachedEnderman;
     private static WardenEntity cachedWarden;
+    private static WitherEntity cachedWither;
     private static CreeperEntity cachedCreeper;
     private static CodEntity cachedCod;
     private static SalmonEntity cachedSalmon;
@@ -182,7 +190,9 @@ public final class PossessedPlayerRenderHelper {
     private static BeeEntity cachedBee;
     private static ParrotEntity cachedParrot;
     private static VillagerEntity cachedVillager;
+    private static WanderingTraderEntity cachedWanderingTrader;
     private static HorseEntity cachedHorse;
+    private static DonkeyEntity cachedDonkey;
     private static MuleEntity cachedMule;
     private static ZombieHorseEntity cachedZombieHorse;
     private static final Map<UUID, Integer> LAST_WARDEN_ATTACK_START = new ConcurrentHashMap<>();
@@ -196,6 +206,7 @@ public final class PossessedPlayerRenderHelper {
     private static StriderEntity cachedStrider;
     private static AxolotlEntity cachedAxolotl;
     private static SnowGolemEntity cachedSnowGolem;
+    private static SnifferEntity cachedSniffer;
     private static CamelEntity cachedCamel;
     private static ArmadilloEntity cachedArmadillo;
     private static final Map<UUID, Integer> LAST_ENDERMAN_PARTICLE_TICK = new ConcurrentHashMap<>();
@@ -262,6 +273,7 @@ public final class PossessedPlayerRenderHelper {
         return type == EntityType.BLAZE
                 || type == EntityType.GHAST
                 || type == EntityType.WITHER_SKELETON
+                || type == EntityType.WITHER
                 || type == EntityType.WARDEN
                 || type == EntityType.MAGMA_CUBE
                 || type == EntityType.STRIDER
@@ -405,6 +417,11 @@ public final class PossessedPlayerRenderHelper {
                 cachedBlaze = new BlazeEntity(EntityType.BLAZE, world);
             return cachedBlaze;
         }
+        if (type == EntityType.CREAKING) {
+            if (cachedCreaking == null || cachedCreaking.getEntityWorld() != world)
+                cachedCreaking = new CreakingEntity(EntityType.CREAKING, world);
+            return cachedCreaking;
+        }
         if (type == EntityType.GHAST) {
             if (cachedGhast == null || cachedGhast.getEntityWorld() != world)
                 cachedGhast = new GhastEntity(EntityType.GHAST, world);
@@ -470,10 +487,20 @@ public final class PossessedPlayerRenderHelper {
                 cachedVillager = new VillagerEntity(EntityType.VILLAGER, world);
             return cachedVillager;
         }
+        if (type == EntityType.WANDERING_TRADER) {
+            if (cachedWanderingTrader == null || cachedWanderingTrader.getEntityWorld() != world)
+                cachedWanderingTrader = new WanderingTraderEntity(EntityType.WANDERING_TRADER, world);
+            return cachedWanderingTrader;
+        }
         if (type == EntityType.HORSE) {
             if (cachedHorse == null || cachedHorse.getEntityWorld() != world)
                 cachedHorse = new HorseEntity(EntityType.HORSE, world);
             return cachedHorse;
+        }
+        if (type == EntityType.DONKEY) {
+            if (cachedDonkey == null || cachedDonkey.getEntityWorld() != world)
+                cachedDonkey = new DonkeyEntity(EntityType.DONKEY, world);
+            return cachedDonkey;
         }
         if (type == EntityType.MULE) {
             if (cachedMule == null || cachedMule.getEntityWorld() != world)
@@ -539,6 +566,11 @@ public final class PossessedPlayerRenderHelper {
             if (cachedCamel == null || cachedCamel.getEntityWorld() != world)
                 cachedCamel = new CamelEntity(EntityType.CAMEL, world);
             return cachedCamel;
+        }
+        if (type == EntityType.SNIFFER) {
+            if (cachedSniffer == null || cachedSniffer.getEntityWorld() != world)
+                cachedSniffer = new SnifferEntity(EntityType.SNIFFER, world);
+            return cachedSniffer;
         }
         if (type == EntityType.ARMADILLO) {
             if (cachedArmadillo == null || cachedArmadillo.getEntityWorld() != world)
@@ -609,6 +641,11 @@ public final class PossessedPlayerRenderHelper {
             if (cachedWarden == null || cachedWarden.getEntityWorld() != world)
                 cachedWarden = new WardenEntity(EntityType.WARDEN, world);
             return cachedWarden;
+        }
+        if (type == EntityType.WITHER) {
+            if (cachedWither == null || cachedWither.getEntityWorld() != world)
+                cachedWither = new WitherEntity(EntityType.WITHER, world);
+            return cachedWither;
         }
         if (type == EntityType.CREEPER) {
             if (cachedCreeper == null || cachedCreeper.getEntityWorld() != world)
@@ -1045,6 +1082,32 @@ public final class PossessedPlayerRenderHelper {
             }
         }
 
+        if (shell instanceof CreakingEntity creaking) {
+            boolean attacking = player.handSwinging || player.handSwingProgress > 0.01f;
+            boolean invulnerable = net.sam.samrequiemmod.possession.creaking.CreakingState
+                    .isClientInvulnerable(player.getUuid(), player.age);
+            boolean crumbling = net.sam.samrequiemmod.possession.creaking.CreakingState
+                    .isClientCrumbling(player.getUuid(), player.age);
+
+            if (attacking) {
+                creaking.attackAnimationState.startIfNotRunning(player.age);
+            } else {
+                creaking.attackAnimationState.stop();
+            }
+
+            if (invulnerable) {
+                creaking.invulnerableAnimationState.startIfNotRunning(player.age);
+            } else {
+                creaking.invulnerableAnimationState.stop();
+            }
+
+            if (crumbling) {
+                creaking.crumblingAnimationState.startIfNotRunning(player.age);
+            } else {
+                creaking.crumblingAnimationState.stop();
+            }
+        }
+
         // Creeper: drive fuse animation and charged glow from client state
         if (shell instanceof CreeperEntity creeper) {
             // Set fuse time based on charging state
@@ -1239,11 +1302,25 @@ public final class PossessedPlayerRenderHelper {
             villager.setVillagerData(new VillagerData(villagerType, villagerProfession, 1));
         }
 
+        if (shell instanceof WanderingTraderEntity trader) {
+            trader.setStackInHand(Hand.MAIN_HAND,
+                    net.sam.samrequiemmod.possession.trader.WanderingTraderState.getClientDrinkStack(player.getUuid(), player.age));
+            if (net.sam.samrequiemmod.possession.trader.WanderingTraderState.isClientDrinking(player.getUuid(), player.age)) {
+                trader.setCurrentHand(Hand.MAIN_HAND);
+            } else {
+                trader.stopUsingItem();
+            }
+        }
+
         if (shell instanceof HorseEntity horse) {
             horse.setBaby(net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isClientBaby(player.getUuid()));
             horse.getDataTracker().set(
                     net.sam.samrequiemmod.mixin.client.HorseEntityVariantAccessor.getVariantKey(),
                     net.sam.samrequiemmod.possession.beast.BeastState.getClientHorseVariant(player.getUuid()));
+        }
+
+        if (shell instanceof DonkeyEntity donkey) {
+            donkey.setBaby(net.sam.samrequiemmod.possession.passive.BabyPassiveMobState.isClientBaby(player.getUuid()));
         }
 
         if (shell instanceof MuleEntity mule) {
@@ -1413,7 +1490,8 @@ public final class PossessedPlayerRenderHelper {
                 || player.getVehicle() instanceof SpiderEntity
                 || player.getVehicle() instanceof ZombieHorseEntity
                 || player.getVehicle() instanceof SkeletonHorseEntity
-                || player.getVehicle() instanceof ZombieNautilusEntity)) {
+                || player.getVehicle() instanceof ZombieNautilusEntity
+                || player.getVehicle().getType() == EntityType.CAMEL_HUSK)) {
             shell.vehicle = player.getVehicle();
         } else {
             shell.vehicle = null;

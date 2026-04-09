@@ -94,8 +94,8 @@ public final class PiglinBrutePossessionController {
             Entity attacker = source.getAttacker();
             if (attacker instanceof net.minecraft.entity.mob.SlimeEntity) return true;
 
-            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_PIGLIN_BRUTE_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_PIGLIN_BRUTE_HURT, 1.0f);
 
             ensureAxe(player);
 

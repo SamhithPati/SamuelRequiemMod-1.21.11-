@@ -7,6 +7,7 @@ import net.minecraft.entity.mob.DrownedEntity;
 import net.minecraft.entity.mob.HuskEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.mob.ZombieEntity;
+import net.minecraft.entity.mob.CreakingEntity;
 import net.minecraft.entity.passive.PandaEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -33,6 +34,10 @@ public final class RelicPossessionHandler {
             if (hand != Hand.MAIN_HAND) return ActionResult.PASS;
             if (!player.getStackInHand(hand).isOf(ModItems.POSSESSION_RELIC)) return ActionResult.PASS;
             if (!(entity instanceof LivingEntity livingTarget)) return ActionResult.PASS;
+            if (livingTarget.getType() == EntityType.COPPER_GOLEM
+                    || livingTarget.getType() == net.sam.samrequiemmod.entity.ModEntities.CORRUPTED_MERCHANT) {
+                return ActionResult.PASS;
+            }
             if (!(entity instanceof MobEntity)) return ActionResult.PASS;
 
             if (entity instanceof PlayerEntity) {
@@ -48,9 +53,30 @@ public final class RelicPossessionHandler {
             }
 
             EntityType<?> type = livingTarget.getType();
-            if (type == EntityType.WITHER
-                    || type == EntityType.ENDER_DRAGON) {
+            if (type == EntityType.ENDER_DRAGON) {
                 return ActionResult.FAIL;
+            }
+
+            if (type == EntityType.WITHER) {
+                float mobHealth = livingTarget.getHealth();
+                PossessionManager.startPossession(serverPlayer, type, mobHealth);
+                PossessionNetworking.broadcastPossessionSync(serverPlayer, type);
+                entity.discard();
+                serverPlayer.sendMessage(
+                        Text.literal("§5You used the Possession Relic on §fWither"), true);
+                return ActionResult.SUCCESS;
+            }
+
+            if (type == EntityType.CREAKING && entity instanceof CreakingEntity creaking) {
+                net.sam.samrequiemmod.possession.creaking.CreakingPossessionController.initializeFromCreaking(serverPlayer, creaking);
+                float mobHealth = livingTarget.getHealth();
+                PossessionManager.startPossession(serverPlayer, type, mobHealth);
+                PossessionNetworking.broadcastPossessionSync(serverPlayer, type);
+                net.sam.samrequiemmod.possession.creaking.CreakingNetworking.broadcastState(serverPlayer);
+                entity.discard();
+                serverPlayer.sendMessage(
+                        Text.literal("§5You used the Possession Relic on §fCreaking"), true);
+                return ActionResult.SUCCESS;
             }
 
             if (type == EntityType.WARDEN) {
@@ -117,10 +143,10 @@ public final class RelicPossessionHandler {
                 return ActionResult.SUCCESS;
             }
 
-            // Passive mobs: cow, pig, sheep, chicken, panda
+            // Passive mobs: cow, pig, sheep, chicken, panda, sniffer
             if (type == EntityType.COW || type == EntityType.PIG
                     || type == EntityType.SHEEP || type == EntityType.CHICKEN
-                    || type == EntityType.PANDA) {
+                    || type == EntityType.PANDA || type == EntityType.SNIFFER) {
                 boolean isBabyPassive = (entity instanceof net.minecraft.entity.passive.PassiveEntity passive)
                         && passive.isBaby();
                 if (entity instanceof net.minecraft.entity.passive.SheepEntity sheep) {
@@ -344,7 +370,7 @@ public final class RelicPossessionHandler {
                 return ActionResult.SUCCESS;
             }
 
-            if ((type == EntityType.MULE || type == EntityType.ZOMBIE_HORSE || type == EntityType.SKELETON_HORSE)
+            if ((type == EntityType.DONKEY || type == EntityType.MULE || type == EntityType.ZOMBIE_HORSE || type == EntityType.SKELETON_HORSE)
                     && entity instanceof net.minecraft.entity.passive.AbstractHorseEntity horse) {
                 net.sam.samrequiemmod.possession.beast.BeastPossessionController.initializePassiveBaby(serverPlayer, horse);
                 float mobHealth = livingTarget.getHealth();
@@ -461,6 +487,18 @@ public final class RelicPossessionHandler {
                 serverPlayer.sendMessage(
                         Text.literal("\u00A75You used the Possession Relic on \u00A7fVillager"
                                 + (isBabyVillager ? " \u00A77(Baby)" : "")),
+                        true
+                );
+                return ActionResult.SUCCESS;
+            }
+
+            if (type == EntityType.WANDERING_TRADER && entity instanceof net.minecraft.entity.passive.WanderingTraderEntity) {
+                float mobHealth = livingTarget.getHealth();
+                PossessionManager.startPossession(serverPlayer, type, mobHealth);
+                PossessionNetworking.broadcastPossessionSync(serverPlayer, type);
+                entity.discard();
+                serverPlayer.sendMessage(
+                        Text.literal("\u00A75You used the Possession Relic on \u00A7fWandering Trader"),
                         true
                 );
                 return ActionResult.SUCCESS;

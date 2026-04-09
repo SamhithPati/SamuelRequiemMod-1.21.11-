@@ -18,6 +18,7 @@ import net.minecraft.entity.passive.ArmadilloEntity;
 import net.minecraft.entity.passive.AxolotlEntity;
 import net.minecraft.entity.passive.BeeEntity;
 import net.minecraft.entity.passive.CamelEntity;
+import net.minecraft.entity.passive.DonkeyEntity;
 import net.minecraft.entity.passive.GoatEntity;
 import net.minecraft.entity.passive.HorseEntity;
 import net.minecraft.entity.passive.IronGolemEntity;
@@ -62,7 +63,7 @@ public final class BeastPossessionController {
 
     public static boolean isHorseLikePossessing(PlayerEntity player) {
         EntityType<?> type = PossessionManager.getPossessedType(player);
-        return type == EntityType.HORSE || type == EntityType.MULE
+        return type == EntityType.HORSE || type == EntityType.DONKEY || type == EntityType.MULE
                 || type == EntityType.ZOMBIE_HORSE || type == EntityType.SKELETON_HORSE;
     }
 
@@ -119,7 +120,7 @@ public final class BeastPossessionController {
     }
 
     public static boolean isTrackedType(EntityType<?> type) {
-        return type == EntityType.HORSE || type == EntityType.MULE || type == EntityType.ZOMBIE_HORSE
+        return type == EntityType.HORSE || type == EntityType.DONKEY || type == EntityType.MULE || type == EntityType.ZOMBIE_HORSE
                 || type == EntityType.SKELETON_HORSE || type == EntityType.ENDERMITE
                 || type == EntityType.GOAT || type == EntityType.POLAR_BEAR
                 || type == EntityType.RABBIT || type == EntityType.TURTLE || type == EntityType.SHULKER
@@ -300,7 +301,7 @@ public final class BeastPossessionController {
         lockHunger(player);
         handleAmbient(player);
 
-        if (type == EntityType.HORSE || type == EntityType.MULE || type == EntityType.ZOMBIE_HORSE || type == EntityType.SKELETON_HORSE) {
+        if (type == EntityType.HORSE || type == EntityType.DONKEY || type == EntityType.MULE || type == EntityType.ZOMBIE_HORSE || type == EntityType.SKELETON_HORSE) {
             if (player.age % 400 == 0) {
                 player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                         SoundEvents.ENTITY_HORSE_EAT, SoundCategory.PLAYERS, 0.8f, getPitch(player));
@@ -626,7 +627,7 @@ public final class BeastPossessionController {
         EntityType<?> type = PossessionManager.getPossessedType(player);
         if (type == EntityType.ZOMBIE_HORSE) return !isZombieHorseFood(stack);
         if (type == EntityType.SKELETON_HORSE) return !isSkeletonHorseFood(stack);
-        if (type == EntityType.HORSE || type == EntityType.MULE) return !isHorseFood(stack);
+        if (type == EntityType.HORSE || type == EntityType.DONKEY || type == EntityType.MULE) return !isHorseFood(stack);
         if (type == EntityType.POLAR_BEAR) return !isPolarFood(stack);
         if (type == EntityType.STRIDER) return !isStriderFood(stack);
         if (type == EntityType.AXOLOTL) return !isAxolotlFood(stack);
@@ -642,7 +643,7 @@ public final class BeastPossessionController {
         EntityType<?> type = PossessionManager.getPossessedType(player);
         if (type == EntityType.ZOMBIE_HORSE) return "§cAs a zombie horse, you can only heal from raw meat and rotten flesh.";
         if (type == EntityType.SKELETON_HORSE) return "§cAs a skeleton horse, you can only heal from bones.";
-        if (type == EntityType.HORSE || type == EntityType.MULE) return "§cAs a horse, you can only heal from apples, wheat, carrots, golden carrots, and golden apples.";
+        if (type == EntityType.HORSE || type == EntityType.DONKEY || type == EntityType.MULE) return "§cAs a horse, you can only heal from apples, wheat, carrots, golden carrots, and golden apples.";
         if (type == EntityType.POLAR_BEAR) return "§cAs a polar bear, you can only heal from salmon.";
         if (type == EntityType.STRIDER) return "§cAs a strider, you can only heal from warped fungus.";
         if (type == EntityType.AXOLOTL) return "§cAs an axolotl, you can only heal from tropical fish.";
@@ -657,7 +658,7 @@ public final class BeastPossessionController {
         EntityType<?> type = PossessionManager.getPossessedType(player);
         if (type == EntityType.GOAT) return 1.15;
         if (type == EntityType.CAMEL) return 0.0;
-        if (type == EntityType.HORSE || type == EntityType.MULE || type == EntityType.ZOMBIE_HORSE || type == EntityType.SKELETON_HORSE) {
+        if (type == EntityType.HORSE || type == EntityType.DONKEY || type == EntityType.MULE || type == EntityType.ZOMBIE_HORSE || type == EntityType.SKELETON_HORSE) {
             return 0.75;
         }
         return -1.0;
@@ -896,6 +897,7 @@ public final class BeastPossessionController {
                 ? SoundEvents.ENTITY_BEE_LOOP_AGGRESSIVE : SoundEvents.ENTITY_BEE_LOOP;
         if (type == EntityType.PARROT) return SoundEvents.ENTITY_PARROT_AMBIENT;
         if (type == EntityType.HORSE || type == EntityType.MULE) return SoundEvents.ENTITY_HORSE_AMBIENT;
+        if (type == EntityType.DONKEY) return SoundEvents.ENTITY_DONKEY_AMBIENT;
         if (type == EntityType.ZOMBIE_HORSE) return SoundEvents.ENTITY_ZOMBIE_HORSE_AMBIENT;
         if (type == EntityType.SKELETON_HORSE) return SoundEvents.ENTITY_SKELETON_HORSE_AMBIENT;
         if (type == EntityType.ENDERMITE) return SoundEvents.ENTITY_ENDERMITE_AMBIENT;
@@ -917,6 +919,7 @@ public final class BeastPossessionController {
         if (type == EntityType.BEE) return SoundEvents.ENTITY_BEE_HURT;
         if (type == EntityType.PARROT) return SoundEvents.ENTITY_PARROT_HURT;
         if (type == EntityType.HORSE || type == EntityType.MULE) return SoundEvents.ENTITY_HORSE_HURT;
+        if (type == EntityType.DONKEY) return SoundEvents.ENTITY_DONKEY_HURT;
         if (type == EntityType.ZOMBIE_HORSE) return SoundEvents.ENTITY_ZOMBIE_HORSE_HURT;
         if (type == EntityType.SKELETON_HORSE) return SoundEvents.ENTITY_SKELETON_HORSE_HURT;
         if (type == EntityType.ENDERMITE) return SoundEvents.ENTITY_ENDERMITE_HURT;
@@ -938,6 +941,7 @@ public final class BeastPossessionController {
         if (type == EntityType.BEE) return SoundEvents.ENTITY_BEE_DEATH;
         if (type == EntityType.PARROT) return SoundEvents.ENTITY_PARROT_DEATH;
         if (type == EntityType.HORSE || type == EntityType.MULE) return SoundEvents.ENTITY_HORSE_DEATH;
+        if (type == EntityType.DONKEY) return SoundEvents.ENTITY_DONKEY_DEATH;
         if (type == EntityType.ZOMBIE_HORSE) return SoundEvents.ENTITY_ZOMBIE_HORSE_DEATH;
         if (type == EntityType.SKELETON_HORSE) return SoundEvents.ENTITY_SKELETON_HORSE_DEATH;
         if (type == EntityType.ENDERMITE) return SoundEvents.ENTITY_ENDERMITE_DEATH;

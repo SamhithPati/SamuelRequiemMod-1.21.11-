@@ -79,14 +79,14 @@ public final class CreeperPossessionController {
                 // Broadcast charged state to clients
                 CreeperNetworking.broadcastChargeSync(player, isCharging(player.getUuid()),
                         getFuseTicks(player.getUuid()), true);
-                player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                        SoundEvents.ENTITY_CREEPER_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                        player, SoundEvents.ENTITY_CREEPER_HURT, 1.0f);
                 return false; // don't take the lightning damage
             }
 
             // Play creeper hurt sound for other damage
-            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_CREEPER_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_CREEPER_HURT, 1.0f);
             return true;
         });
 

@@ -8,6 +8,7 @@ import net.minecraft.entity.passive.WolfEntity;
 import net.minecraft.entity.mob.ZoglinEntity;
 import net.minecraft.entity.mob.WardenEntity;
 import net.minecraft.entity.mob.BreezeEntity;
+import net.minecraft.entity.mob.CreakingEntity;
 import net.minecraft.entity.passive.IronGolemEntity;
 import net.minecraft.entity.passive.CatEntity;
 import net.minecraft.entity.passive.FoxEntity;
@@ -56,6 +57,11 @@ public abstract class MobEntityCanTargetMixin {
             if (net.sam.samrequiemmod.possession.hoglin.HoglinPossessionController.isZoglinPossessing(serverPlayer)) {
                 cir.setReturnValue(false);
             }
+            return;
+        }
+        if (self instanceof WitherEntity
+                && net.sam.samrequiemmod.possession.wither.WitherPossessionController.isWitherPossessing(serverPlayer)) {
+            cir.setReturnValue(false);
             return;
         }
 
@@ -111,10 +117,15 @@ public abstract class MobEntityCanTargetMixin {
                 net.sam.samrequiemmod.possession.passive.PassiveMobPossessionController.isPassiveMobPossessing(serverPlayer);
         boolean isChickenPossessed =
                 PossessionManager.getPossessedType(serverPlayer) == EntityType.CHICKEN;
+        boolean isSnifferPossessed =
+                PossessionManager.getPossessedType(serverPlayer) == EntityType.SNIFFER;
         boolean chickenPredator = self instanceof FoxEntity
                 || self instanceof OcelotEntity
                 || (self instanceof CatEntity cat && !cat.isTamed());
-        boolean passiveMobBlocked = isPassiveMobPossessed && !(isChickenPossessed && chickenPredator);
+        boolean passiveMobBlocked = isPassiveMobPossessed
+                && !(isChickenPossessed && chickenPredator)
+                && !(isSnifferPossessed
+                && net.sam.samrequiemmod.possession.passive.PassiveMobPossessionController.isSnifferAlwaysHostile(self));
 
         boolean isPandaPossessed =
                 net.sam.samrequiemmod.possession.passive.PandaPossessionController.isPandaPossessing(serverPlayer);
@@ -234,6 +245,38 @@ public abstract class MobEntityCanTargetMixin {
                 breezeBlocked = true;
             } else {
                 breezeBlocked = !net.sam.samrequiemmod.possession.zombie.ZombieTargetingState.isProvoked(selfEntity.getUuid());
+            }
+        }
+
+        boolean isWitherPossessed =
+                net.sam.samrequiemmod.possession.wither.WitherPossessionController.isWitherPossessing(serverPlayer);
+        boolean witherBlocked = false;
+        if (isWitherPossessed) {
+            boolean alwaysHostile = self instanceof IronGolemEntity
+                    || self instanceof WardenEntity
+                    || self instanceof ZoglinEntity;
+            if (alwaysHostile) {
+                witherBlocked = false;
+            } else if (self instanceof WitherEntity) {
+                witherBlocked = true;
+            } else {
+                witherBlocked = !net.sam.samrequiemmod.possession.zombie.ZombieTargetingState.isProvoked(selfEntity.getUuid());
+            }
+        }
+
+        boolean isCreakingPossessed =
+                net.sam.samrequiemmod.possession.creaking.CreakingPossessionController.isCreakingPossessing(serverPlayer);
+        boolean creakingBlocked = false;
+        if (isCreakingPossessed) {
+            boolean alwaysHostile = self instanceof WardenEntity
+                    || self instanceof WitherEntity
+                    || self instanceof ZoglinEntity;
+            if (alwaysHostile) {
+                creakingBlocked = false;
+            } else if (self instanceof CreakingEntity) {
+                creakingBlocked = !net.sam.samrequiemmod.possession.zombie.ZombieTargetingState.isProvoked(selfEntity.getUuid());
+            } else {
+                creakingBlocked = !net.sam.samrequiemmod.possession.zombie.ZombieTargetingState.isProvoked(selfEntity.getUuid());
             }
         }
 
@@ -368,7 +411,8 @@ public abstract class MobEntityCanTargetMixin {
         boolean batBlocked = isBatPossessed;
 
         boolean isVillagerPossessed =
-                net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isVillagerPossessing(serverPlayer);
+                net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isVillagerPossessing(serverPlayer)
+                        || net.sam.samrequiemmod.possession.trader.WanderingTraderPossessionController.isWanderingTraderPossessing(serverPlayer);
         boolean villagerBlocked = false;
         if (isVillagerPossessed) {
             if (self instanceof IronGolemEntity) {
@@ -492,7 +536,7 @@ public abstract class MobEntityCanTargetMixin {
             }
         }
 
-        if (isZombiePossessed || isImmune || isIllagerAlly || illagerBlocked || passiveMobBlocked || pandaBlocked || ironGolemBlocked || skeletonBlocked || witherSkeletonBlocked || endermanBlocked || wardenBlocked || breezeBlocked || creeperBlocked || spiderBlocked || hoglinBlocked || guardianBlocked || silverfishBlocked || blazeBlocked || ghastBlocked || wolfBlocked || foxBlocked || felineBlocked || vexBlocked || batBlocked || villagerBlocked || beastBlocked || slimeBlocked || aquaticBlocked || piglinBlocked || zombifiedPiglinBlocked) {
+        if (isZombiePossessed || isImmune || isIllagerAlly || illagerBlocked || passiveMobBlocked || pandaBlocked || ironGolemBlocked || skeletonBlocked || witherSkeletonBlocked || endermanBlocked || wardenBlocked || breezeBlocked || witherBlocked || creakingBlocked || creeperBlocked || spiderBlocked || hoglinBlocked || guardianBlocked || silverfishBlocked || blazeBlocked || ghastBlocked || wolfBlocked || foxBlocked || felineBlocked || vexBlocked || batBlocked || villagerBlocked || beastBlocked || slimeBlocked || aquaticBlocked || piglinBlocked || zombifiedPiglinBlocked) {
             cir.setReturnValue(false);
         }
     }

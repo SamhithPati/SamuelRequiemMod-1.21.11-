@@ -69,8 +69,8 @@ public final class EvokerPossessionController {
             if (!isEvokerPossessing(player)) return true;
             if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
-            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_EVOKER_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_EVOKER_HURT, 1.0f);
 
             Entity attacker = source.getAttacker();
             if (attacker instanceof LivingEntity livingAttacker
@@ -361,6 +361,7 @@ public final class EvokerPossessionController {
         ITEMS_GIVEN.remove(uuid); LAST_FANG_TICK.remove(uuid); LAST_VEX_TICK.remove(uuid);
         VEX_TARGET.remove(uuid); VEX_TARGET_TICK.remove(uuid); SUMMONED_VEXES.remove(uuid);
         LAST_ATTACKER.remove(uuid); GIVEN_BANNER.remove(uuid);
+        IllagerRavagerCallController.onUnpossess(player);
         removeItemType(player, Items.TOTEM_OF_UNDYING);
         removeItemType(player, Items.GOAT_HORN);
         net.minecraft.registry.Registries.ITEM.stream().forEach(item -> {
@@ -382,6 +383,7 @@ public final class EvokerPossessionController {
         ITEMS_GIVEN.remove(uuid); LAST_FANG_TICK.remove(uuid); LAST_VEX_TICK.remove(uuid);
         VEX_TARGET.remove(uuid); VEX_TARGET_TICK.remove(uuid); SUMMONED_VEXES.remove(uuid);
         LAST_ATTACKER.remove(uuid); GIVEN_BANNER.remove(uuid);
+        IllagerRavagerCallController.onUnpossessUuid(uuid);
     }
 }
 

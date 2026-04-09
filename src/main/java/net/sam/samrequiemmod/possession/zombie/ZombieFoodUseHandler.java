@@ -39,6 +39,7 @@ public final class ZombieFoodUseHandler {
             boolean isZombieVillager = net.sam.samrequiemmod.possession.zombie_villager.ZombieVillagerPossessionController.isZombieVillagerPossessing(serverPlayer);
             boolean isBabyZombieVillager = net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerPossessionController.isBabyZombieVillagerPossessing(serverPlayer);
             boolean isVillager = net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isVillagerPossessing(serverPlayer);
+            boolean isWanderingTrader = net.sam.samrequiemmod.possession.trader.WanderingTraderPossessionController.isWanderingTraderPossessing(serverPlayer);
             boolean isPillager   = net.sam.samrequiemmod.possession.illager.PillagerPossessionController.isPillagerPossessing(serverPlayer);
             boolean isVindicator = net.sam.samrequiemmod.possession.illager.VindicatorPossessionController.isVindicatorPossessing(serverPlayer);
             boolean isEvoker = net.sam.samrequiemmod.possession.illager.EvokerPossessionController.isEvokerPossessing(serverPlayer);
@@ -737,6 +738,14 @@ public final class ZombieFoodUseHandler {
                 return ActionResult.CONSUME;
             }
 
+            if (isWanderingTrader) {
+                FoodComponent food = stack.get(DataComponentTypes.FOOD);
+                if (food == null) return ActionResult.PASS;
+                EATING_ITEM.put(serverPlayer.getUuid(), stack.copy());
+                player.setCurrentHand(hand);
+                return ActionResult.CONSUME;
+            }
+
             if (!isZombie && !isBabyZombie && !isHusk && !isBabyHusk && !isDrowned && !isBabyDrowned && !isZombieVillager && !isBabyZombieVillager) return ActionResult.PASS;
 
             FoodComponent food = stack.get(DataComponentTypes.FOOD);
@@ -770,6 +779,7 @@ public final class ZombieFoodUseHandler {
         boolean isZombieVillager2 = net.sam.samrequiemmod.possession.zombie_villager.ZombieVillagerPossessionController.isZombieVillagerPossessing(player);
         boolean isBabyZombieVillager2 = net.sam.samrequiemmod.possession.zombie_villager.BabyZombieVillagerPossessionController.isBabyZombieVillagerPossessing(player);
         boolean isVillager2 = net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isVillagerPossessing(player);
+        boolean isWanderingTrader2 = net.sam.samrequiemmod.possession.trader.WanderingTraderPossessionController.isWanderingTraderPossessing(player);
         boolean isPillager   = net.sam.samrequiemmod.possession.illager.PillagerPossessionController.isPillagerPossessing(player);
         boolean isVindicator = net.sam.samrequiemmod.possession.illager.VindicatorPossessionController.isVindicatorPossessing(player);
         boolean isEvoker = net.sam.samrequiemmod.possession.illager.EvokerPossessionController.isEvokerPossessing(player);
@@ -793,7 +803,7 @@ public final class ZombieFoodUseHandler {
                 || net.sam.samrequiemmod.possession.piglin.BabyPiglinPossessionController.isBabyPiglinPossessing(player)
                 || net.sam.samrequiemmod.possession.piglin.PiglinBrutePossessionController.isPiglinBrutePossessing(player);
         boolean isZombifiedPiglin2 = net.sam.samrequiemmod.possession.piglin.ZombifiedPiglinPossessionController.isAnyZombifiedPiglinPossessing(player);
-        if (!isZombie && !isBabyZombie && !isHusk && !isBabyHusk && !isDrowned && !isBabyDrowned && !isZombieVillager2 && !isBabyZombieVillager2 && !isVillager2 && !isPillager && !isVindicator && !isEvoker && !isRavager && !isWitch && !isSpider && !isNautilus && !isZoglin && !isGuardian && !isBlaze && !isGhast && !isSlime && !isWolf && !isFox && !isFeline && !isPanda && !isPassiveMob2 && !isBeast && !isPiglinType2 && !isZombifiedPiglin2) {
+        if (!isZombie && !isBabyZombie && !isHusk && !isBabyHusk && !isDrowned && !isBabyDrowned && !isZombieVillager2 && !isBabyZombieVillager2 && !isVillager2 && !isWanderingTrader2 && !isPillager && !isVindicator && !isEvoker && !isRavager && !isWitch && !isSpider && !isNautilus && !isZoglin && !isGuardian && !isBlaze && !isGhast && !isSlime && !isWolf && !isFox && !isFeline && !isPanda && !isPassiveMob2 && !isBeast && !isPiglinType2 && !isZombifiedPiglin2) {
             EATING_ITEM.remove(player.getUuid());
             return;
         }
@@ -805,7 +815,8 @@ public final class ZombieFoodUseHandler {
         if (!player.isUsingItem()) {
             // Player stopped using item — for villager foods, the finish can happen
             // between ticks, so apply the heal here before cleaning up.
-            if (net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isVillagerPossessing(player)) {
+            if (net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isVillagerPossessing(player)
+                    || net.sam.samrequiemmod.possession.trader.WanderingTraderPossessionController.isWanderingTraderPossessing(player)) {
                 healVillagerFood(player, tracked);
             } else if (tracked.isOf(net.minecraft.item.Items.GOLDEN_APPLE)
                     && (net.sam.samrequiemmod.possession.zombie_villager.ZombieVillagerPossessionController.canStartCure(player, tracked)
@@ -869,7 +880,8 @@ public final class ZombieFoodUseHandler {
                 if (healAmount > 0.0f) player.setHealth(Math.min(player.getHealth() + healAmount, player.getMaxHealth()));
                 return;
             }
-            if (net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isVillagerPossessing(player)) {
+            if (net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isVillagerPossessing(player)
+                    || net.sam.samrequiemmod.possession.trader.WanderingTraderPossessionController.isWanderingTraderPossessing(player)) {
                 healVillagerFood(player, tracked);
                 return;
             }

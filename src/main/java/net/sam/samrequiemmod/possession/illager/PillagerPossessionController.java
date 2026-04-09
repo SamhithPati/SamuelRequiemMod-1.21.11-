@@ -88,8 +88,8 @@ public final class PillagerPossessionController {
             if (!isPillagerPossessing(player)) return true;
             if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
-            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_PILLAGER_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_PILLAGER_HURT, 1.0f);
 
             ensureArrows(player);
 
@@ -131,7 +131,9 @@ public final class PillagerPossessionController {
         if (!isPillagerPossessing(player)) return;
 
         lockHunger(player);
-        ensurePillagerItems(player);
+        if (player.currentScreenHandler.getCursorStack().isEmpty() && player.age % 10 == 0) {
+            ensurePillagerItems(player);
+        }
         handleMeleeDamage(player);
 
         // Health init is handled from SamuelRequiemMod after PossessionEffects.apply()
@@ -227,6 +229,9 @@ public final class PillagerPossessionController {
 
     // ── Item management ───────────────────────────────────────────────────────
     private static void ensurePillagerItems(ServerPlayerEntity player) {
+        if (!player.currentScreenHandler.getCursorStack().isEmpty()) {
+            return;
+        }
         if (ITEMS_GIVEN.contains(player.getUuid())) {
             ensureArrows(player);
             ensureCrossbowUnbreakable(player);
@@ -322,9 +327,15 @@ public final class PillagerPossessionController {
     }
 
     static void ensureArrows(ServerPlayerEntity player) {
+        if (!player.currentScreenHandler.getCursorStack().isEmpty()) {
+            return;
+        }
         boolean has = false;
         for (int i = 0; i < player.getInventory().size(); i++)
             if (player.getInventory().getStack(i).isOf(Items.ARROW)) { has = true; break; }
+        if (!has && player.currentScreenHandler.getCursorStack().isOf(Items.ARROW)) {
+            has = true;
+        }
         if (!has) player.getInventory().offerOrDrop(new ItemStack(Items.ARROW, 64));
     }
 
@@ -369,6 +380,7 @@ public final class PillagerPossessionController {
         ITEMS_GIVEN.remove(player.getUuid());
         HEALTH_INITIALIZED.remove(player.getUuid());
         LAST_ATTACKER.remove(player.getUuid());
+        IllagerRavagerCallController.onUnpossess(player);
         // Remove standard pillager items
         removeItemType(player, Items.CROSSBOW);
         removeItemType(player, Items.ARROW);
@@ -403,6 +415,7 @@ public final class PillagerPossessionController {
     public static void onUnpossessUuid(UUID playerUuid) {
         ITEMS_GIVEN.remove(playerUuid);
         GIVEN_BANNER.remove(playerUuid);
+        IllagerRavagerCallController.onUnpossessUuid(playerUuid);
     }
 }
 

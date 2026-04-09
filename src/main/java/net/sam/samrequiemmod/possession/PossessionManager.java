@@ -54,6 +54,8 @@ public final class PossessionManager {
     }
 
     public static void startPossession(ServerPlayerEntity player, EntityType<?> type, float mobHealth) {
+        resetTransientMobilityFlags(player);
+
         // Save pre-possession state before anything changes
         PRE_POSSESSION_STATE.put(player.getUuid(), new float[]{
                 player.getHealth(),
@@ -92,6 +94,8 @@ public final class PossessionManager {
     }
 
     public static void switchPossessionType(ServerPlayerEntity player, EntityType<?> type, float mobHealth) {
+        resetTransientMobilityFlags(player);
+
         PossessionData data = getOrCreate(player);
         data.setPossessedType(type);
 
@@ -121,7 +125,8 @@ public final class PossessionManager {
      */
     private static void clearNearbyMobTargets(ServerPlayerEntity player) {
         if (player.getEntityWorld() == null) return;
-        boolean villagerSafe = net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isVillagerPossessing(player);
+        boolean villagerSafe = net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isVillagerPossessing(player)
+                || net.sam.samrequiemmod.possession.trader.WanderingTraderPossessionController.isWanderingTraderPossessing(player);
         boolean batSafe = net.sam.samrequiemmod.possession.bat.BatPossessionController.isBatPossessing(player);
 
         net.minecraft.util.math.Box box = player.getBoundingBox().expand(48.0);
@@ -154,6 +159,8 @@ public final class PossessionManager {
         boolean wasEnderman = net.sam.samrequiemmod.possession.enderman.EndermanPossessionController.isEndermanPossessing(player);
         boolean wasWarden = net.sam.samrequiemmod.possession.warden.WardenPossessionController.isWardenPossessing(player);
         boolean wasBreeze = net.sam.samrequiemmod.possession.breeze.BreezePossessionController.isBreezePossessing(player);
+        boolean wasWither = net.sam.samrequiemmod.possession.wither.WitherPossessionController.isWitherPossessing(player);
+        boolean wasCreaking = net.sam.samrequiemmod.possession.creaking.CreakingPossessionController.isCreakingPossessing(player);
         boolean wasCreeper = net.sam.samrequiemmod.possession.creeper.CreeperPossessionController.isCreeperPossessing(player);
         boolean wasFish = net.sam.samrequiemmod.possession.aquatic.FishPossessionController.isFishPossessing(player);
         boolean wasSquid = net.sam.samrequiemmod.possession.aquatic.SquidPossessionController.isSquidPossessing(player);
@@ -172,6 +179,7 @@ public final class PossessionManager {
         boolean wasVex = net.sam.samrequiemmod.possession.vex.VexPossessionController.isVexPossessing(player);
         boolean wasBat = net.sam.samrequiemmod.possession.bat.BatPossessionController.isBatPossessing(player);
         boolean wasVillager = net.sam.samrequiemmod.possession.villager.VillagerPossessionController.isVillagerPossessing(player);
+        boolean wasWanderingTrader = net.sam.samrequiemmod.possession.trader.WanderingTraderPossessionController.isWanderingTraderPossessing(player);
         boolean wasBeast = net.sam.samrequiemmod.possession.beast.BeastPossessionController.isTrackedType(getPossessedType(player));
         boolean wasPiglin = net.sam.samrequiemmod.possession.piglin.PiglinPossessionController.isPiglinPossessing(player);
         boolean wasBabyPiglin = net.sam.samrequiemmod.possession.piglin.BabyPiglinPossessionController.isBabyPiglinPossessing(player);
@@ -291,6 +299,16 @@ public final class PossessionManager {
         } else {
             net.sam.samrequiemmod.possession.breeze.BreezePossessionController.onUnpossessUuid(player.getUuid());
         }
+        if (wasWither) {
+            net.sam.samrequiemmod.possession.wither.WitherPossessionController.onUnpossess(player);
+        } else {
+            net.sam.samrequiemmod.possession.wither.WitherPossessionController.onUnpossessUuid(player.getUuid());
+        }
+        if (wasCreaking) {
+            net.sam.samrequiemmod.possession.creaking.CreakingPossessionController.onUnpossess(player);
+        } else {
+            net.sam.samrequiemmod.possession.creaking.CreakingPossessionController.onUnpossessUuid(player.getUuid());
+        }
 
         // Clean up creeper possession state (fuse, charged status, explosion immunity)
         if (wasCreeper) {
@@ -405,6 +423,11 @@ public final class PossessionManager {
         } else {
             net.sam.samrequiemmod.possession.villager.VillagerPossessionController.onUnpossessUuid(player.getUuid());
         }
+        if (wasWanderingTrader) {
+            net.sam.samrequiemmod.possession.trader.WanderingTraderPossessionController.onUnpossess(player);
+        } else {
+            net.sam.samrequiemmod.possession.trader.WanderingTraderPossessionController.onUnpossessUuid(player.getUuid());
+        }
         if (wasBeast) {
             net.sam.samrequiemmod.possession.beast.BeastPossessionController.onUnpossess(player);
         } else {
@@ -449,6 +472,7 @@ public final class PossessionManager {
 
         // Grant immunity window FIRST — this makes MobEntityTargetMixin
         // block any re-targeting before we clear the provoked mobs below
+        resetTransientMobilityFlags(player);
         SamuelRequiemMod.POST_POSSESSION_IMMUNITY.put(player.getUuid(), (long) player.age + 100L);
 
         // Clear all mobs this player provoked during possession, and wipe their anger memory
@@ -502,6 +526,29 @@ public final class PossessionManager {
             LAST_DIMENSION_TYPE.remove(player.getUuid());
         } else {
             LAST_DIMENSION_TYPE.put(player.getUuid(), type);
+        }
+    }
+
+    private static void resetTransientMobilityFlags(ServerPlayerEntity player) {
+        if (player.isCreative() || player.isSpectator()) {
+            player.noClip = false;
+            return;
+        }
+
+        boolean changed = false;
+        if (player.getAbilities().allowFlying) {
+            player.getAbilities().allowFlying = false;
+            changed = true;
+        }
+        if (player.getAbilities().flying) {
+            player.getAbilities().flying = false;
+            changed = true;
+        }
+        if (player.noClip) {
+            player.noClip = false;
+        }
+        if (changed) {
+            player.sendAbilitiesUpdate();
         }
     }
 }

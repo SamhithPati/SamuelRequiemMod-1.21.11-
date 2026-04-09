@@ -160,6 +160,14 @@ public final class PossessionProfiles {
             0.698f, 0.8f, 0.72f, 20.0f, 0.05f
     );
 
+    public static final PossessionProfile DONKEY_PROFILE = new PossessionProfile(
+            1.3965f, 1.6f, 1.44f, 20.0f, 0.05f
+    );
+
+    public static final PossessionProfile BABY_DONKEY_PROFILE = new PossessionProfile(
+            0.698f, 0.8f, 0.72f, 20.0f, 0.05f
+    );
+
     public static final PossessionProfile ZOMBIE_HORSE_PROFILE = new PossessionProfile(
             1.3965f, 1.6f, 1.44f, 20.0f, -0.04f
     );
@@ -264,6 +272,10 @@ public final class PossessionProfiles {
             0.6f, 1.95f, 1.62f, 0.0f, 0.05f
     );
 
+    public static final PossessionProfile WANDERING_TRADER_PROFILE = new PossessionProfile(
+            0.6f, 1.95f, 1.62f, 0.0f, 0.05f
+    );
+
     public static final PossessionProfile BABY_VILLAGER_PROFILE = new PossessionProfile(
             0.6f, 0.975f, 0.84f, 0.0f, 0.07f
     );
@@ -278,6 +290,10 @@ public final class PossessionProfiles {
 
     public static final PossessionProfile PANDA_PROFILE = new PossessionProfile(
             1.3f, 1.25f, 1.05f, 0.0f, -0.02f
+    );
+
+    public static final PossessionProfile SNIFFER_PROFILE = new PossessionProfile(
+            1.9f, 1.75f, 1.4f, -6.0f, -0.04f
     );
 
     public static final PossessionProfile PILLAGER_PROFILE = new PossessionProfile(
@@ -321,6 +337,12 @@ public final class PossessionProfiles {
 
     public static final PossessionProfile BREEZE_PROFILE = new PossessionProfile(
             0.6f, 1.77f, 1.55f, -4.0f, 0.04f);
+
+    public static final PossessionProfile WITHER_PROFILE = new PossessionProfile(
+            0.9f, 3.5f, 3.1f, 300.0f, 0.0f);
+
+    public static final PossessionProfile CREAKING_PROFILE = new PossessionProfile(
+            0.6f, 2.7f, 2.45f, -19.0f, 0.0f);
 
     // 🐟 Cod — 1.5 hearts (3 HP), greatly reduced land speed
     public static final PossessionProfile COD_PROFILE = new PossessionProfile(
@@ -446,6 +468,12 @@ public final class PossessionProfiles {
         // Breeze — vanilla 8 hearts (16 HP), same speed as pillager
         register(EntityType.BREEZE, BREEZE_PROFILE);
 
+        // Wither — 150 hearts (300 HP), always flying
+        register(EntityType.WITHER, WITHER_PROFILE);
+
+        // Creaking — half heart, pillager speed
+        register(EntityType.CREAKING, CREAKING_PROFILE);
+
         // 💥 Creeper — 10 hearts (20 HP), same speed as skeleton
         register(EntityType.CREEPER, new PossessionProfile(
                 0.6f, 1.7f, 1.445f, 0.0f, -0.02f
@@ -505,6 +533,7 @@ public final class PossessionProfiles {
         register(EntityType.CAT, CAT_PROFILE);
         register(EntityType.FROG, FROG_PROFILE);
         register(EntityType.HORSE, HORSE_PROFILE);
+        register(EntityType.DONKEY, DONKEY_PROFILE);
         register(EntityType.ZOMBIE_HORSE, ZOMBIE_HORSE_PROFILE);
         register(EntityType.SKELETON_HORSE, SKELETON_HORSE_PROFILE);
         register(EntityType.MULE, MULE_PROFILE);
@@ -522,9 +551,11 @@ public final class PossessionProfiles {
         register(EntityType.VEX, VEX_PROFILE);
         register(EntityType.BAT, BAT_PROFILE);
         register(EntityType.VILLAGER, VILLAGER_PROFILE);
+        register(EntityType.WANDERING_TRADER, WANDERING_TRADER_PROFILE);
         register(EntityType.BEE, BEE_PROFILE);
         register(EntityType.PARROT, PARROT_PROFILE);
         register(EntityType.PANDA, PANDA_PROFILE);
+        register(EntityType.SNIFFER, SNIFFER_PROFILE);
 
         // 🐄 Cow — 5 hearts (10 HP), slightly slower than illagers
         register(EntityType.COW, new PossessionProfile(

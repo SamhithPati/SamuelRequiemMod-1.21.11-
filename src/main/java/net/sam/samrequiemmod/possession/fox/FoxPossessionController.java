@@ -63,8 +63,8 @@ public final class FoxPossessionController {
             if (!isFoxPossessing(player)) return true;
             if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
-            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_FOX_HURT, SoundCategory.PLAYERS, 1.0f, getPitch(player));
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_FOX_HURT, getPitch(player));
 
             if (source.getAttacker() instanceof MobEntity mob) {
                 ZombieTargetingState.markProvoked(mob.getUuid(), player.getUuid());

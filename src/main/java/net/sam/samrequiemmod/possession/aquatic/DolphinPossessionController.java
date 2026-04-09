@@ -94,9 +94,8 @@ public final class DolphinPossessionController {
             if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
             // Play hurt sound
-            player.getEntityWorld().playSound(null,
-                    player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_DOLPHIN_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_DOLPHIN_HURT, 1.0f);
 
             // Rally nearby dolphins to attack the source
             if (source.getAttacker() instanceof LivingEntity attacker) {

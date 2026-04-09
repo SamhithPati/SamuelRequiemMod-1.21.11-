@@ -78,8 +78,8 @@ public final class VindicatorPossessionController {
             if (!isVindicatorPossessing(player)) return true;
             if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
-            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_VINDICATOR_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_VINDICATOR_HURT, 1.0f);
 
             ensureAxe(player);
 
@@ -233,6 +233,7 @@ public final class VindicatorPossessionController {
         ITEMS_GIVEN.remove(player.getUuid());
         LAST_ATTACKER.remove(player.getUuid());
         LAST_ATTACK_TICK.remove(player.getUuid());
+        IllagerRavagerCallController.onUnpossess(player);
         removeItemType(player, Items.IRON_AXE);
         removeItemType(player, Items.GOAT_HORN);
         net.minecraft.registry.Registries.ITEM.stream().forEach(item -> {
@@ -261,6 +262,7 @@ public final class VindicatorPossessionController {
         GIVEN_BANNER.remove(uuid);
         LAST_ATTACKER.remove(uuid);
         LAST_ATTACK_TICK.remove(uuid);
+        IllagerRavagerCallController.onUnpossessUuid(uuid);
     }
 }
 

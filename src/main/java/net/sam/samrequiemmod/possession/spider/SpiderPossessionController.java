@@ -76,8 +76,8 @@ public final class SpiderPossessionController {
                 return false;
             }
 
-            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_SPIDER_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_SPIDER_HURT, 1.0f);
 
             Entity attacker = source.getAttacker();
             if (attacker instanceof MobEntity mob) {

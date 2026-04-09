@@ -2,8 +2,12 @@ package net.sam.samrequiemmod.possession.passive;
 
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.boss.WitherEntity;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.mob.WardenEntity;
+import net.minecraft.entity.mob.ZoglinEntity;
 import net.minecraft.entity.passive.CatEntity;
 import net.minecraft.entity.passive.FoxEntity;
 import net.minecraft.entity.passive.OcelotEntity;
@@ -72,6 +76,7 @@ public final class PassiveMobPossessionController {
         handleAmbientSound(player);
         handleChickenSlowFall(player);
         handleChickenPredators(player);
+        handleSnifferAmbient(player);
     }
 
     // ── Hunger lock ──────────────────────────────────────────────────────────
@@ -130,6 +135,15 @@ public final class PassiveMobPossessionController {
         predator.getNavigation().startMovingTo(player, 1.25);
     }
 
+    private static void handleSnifferAmbient(ServerPlayerEntity player) {
+        if (PossessionManager.getPossessedType(player) != EntityType.SNIFFER) return;
+        if (player.age % 160 != 0) return;
+        if (player.getRandom().nextFloat() >= 0.45f) return;
+        player.getEntityWorld().playSound(null,
+                player.getX(), player.getY(), player.getZ(),
+                SoundEvents.ENTITY_SNIFFER_SNIFFING, SoundCategory.PLAYERS, 1.0f, getPassivePitch(player));
+    }
+
     // ── Ambient sounds ───────────────────────────────────────────────────────
 
     private static void handleAmbientSound(ServerPlayerEntity player) {
@@ -153,6 +167,7 @@ public final class PassiveMobPossessionController {
         if (type == EntityType.PIG)       return SoundEvents.ENTITY_PIG_AMBIENT;
         if (type == EntityType.SHEEP)     return SoundEvents.ENTITY_SHEEP_AMBIENT;
         if (type == EntityType.CHICKEN)   return SoundEvents.ENTITY_CHICKEN_AMBIENT;
+        if (type == EntityType.SNIFFER)   return SoundEvents.ENTITY_SNIFFER_IDLE;
         return null;
     }
 
@@ -162,6 +177,7 @@ public final class PassiveMobPossessionController {
         if (type == EntityType.PIG)       return SoundEvents.ENTITY_PIG_HURT;
         if (type == EntityType.SHEEP)     return SoundEvents.ENTITY_SHEEP_HURT;
         if (type == EntityType.CHICKEN)   return SoundEvents.ENTITY_CHICKEN_HURT;
+        if (type == EntityType.SNIFFER)   return SoundEvents.ENTITY_SNIFFER_HURT;
         return null;
     }
 
@@ -171,6 +187,7 @@ public final class PassiveMobPossessionController {
         if (type == EntityType.PIG)       return SoundEvents.ENTITY_PIG_DEATH;
         if (type == EntityType.SHEEP)     return SoundEvents.ENTITY_SHEEP_DEATH;
         if (type == EntityType.CHICKEN)   return SoundEvents.ENTITY_CHICKEN_DEATH;
+        if (type == EntityType.SNIFFER)   return SoundEvents.ENTITY_SNIFFER_DEATH;
         return null;
     }
 
@@ -191,6 +208,9 @@ public final class PassiveMobPossessionController {
         if (type == EntityType.PIG) {
             return stack.isOf(Items.POTATO)
                     || stack.isOf(Items.CARROT);
+        }
+        if (type == EntityType.SNIFFER) {
+            return stack.isOf(Items.TORCHFLOWER_SEEDS);
         }
         return false;
     }
@@ -214,6 +234,9 @@ public final class PassiveMobPossessionController {
                 return 2.0f;
             }
         }
+        if (type == EntityType.SNIFFER && stack.isOf(Items.TORCHFLOWER_SEEDS)) {
+            return 2.0f;
+        }
         return 0.0f;
     }
 
@@ -223,6 +246,7 @@ public final class PassiveMobPossessionController {
         if (type == EntityType.SHEEP)     return "§cAs a sheep, you can only heal from wheat.";
         if (type == EntityType.CHICKEN)   return "§cAs a chicken, you can only heal from seeds.";
         if (type == EntityType.PIG)       return "§cAs a pig, you can only heal from potatoes and carrots.";
+        if (type == EntityType.SNIFFER)   return "§cAs a sniffer, you can only heal from torchflower seeds.";
         return "§cYou cannot eat that.";
     }
 
@@ -231,12 +255,20 @@ public final class PassiveMobPossessionController {
     public static boolean isPassiveMobPossessing(PlayerEntity player) {
         EntityType<?> type = PossessionManager.getPossessedType(player);
         return type == EntityType.COW || type == EntityType.MOOSHROOM || type == EntityType.PIG
-                || type == EntityType.SHEEP || type == EntityType.CHICKEN;
+                || type == EntityType.SHEEP || type == EntityType.CHICKEN
+                || type == EntityType.SNIFFER;
     }
 
     public static boolean isPassiveMobType(EntityType<?> type) {
         return type == EntityType.COW || type == EntityType.MOOSHROOM || type == EntityType.PIG
-                || type == EntityType.SHEEP || type == EntityType.CHICKEN;
+                || type == EntityType.SHEEP || type == EntityType.CHICKEN
+                || type == EntityType.SNIFFER;
+    }
+
+    public static boolean isSnifferAlwaysHostile(Entity entity) {
+        return entity instanceof ZoglinEntity
+                || entity instanceof WitherEntity
+                || entity instanceof WardenEntity;
     }
 }
 

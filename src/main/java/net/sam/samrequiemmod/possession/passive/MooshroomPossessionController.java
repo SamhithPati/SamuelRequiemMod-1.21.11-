@@ -43,8 +43,8 @@ public final class MooshroomPossessionController {
                 BROWN_MOOSHROOM_PLAYERS.add(player.getUuid());
                 // Broadcast color state to clients
                 MooshroomNetworking.broadcastColorSync(player, true);
-                player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                        SoundEvents.ENTITY_COW_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                        player, SoundEvents.ENTITY_COW_HURT, 1.0f);
                 return false; // don't take the lightning damage
             }
 

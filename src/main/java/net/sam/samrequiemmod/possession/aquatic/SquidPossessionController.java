@@ -61,9 +61,8 @@ public final class SquidPossessionController {
             if (net.sam.samrequiemmod.possession.PossessionDamageHelper.isHarmlessSlimeContact(source)) return true;
 
             // Play squid hurt sound
-            player.getEntityWorld().playSound(null,
-                    player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_SQUID_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_SQUID_HURT, 1.0f);
 
             // Squirt ink particles (like vanilla squid when damaged)
             if (player.getEntityWorld() instanceof ServerWorld serverWorld) {

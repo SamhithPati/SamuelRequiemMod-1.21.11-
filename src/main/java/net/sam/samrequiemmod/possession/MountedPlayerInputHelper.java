@@ -23,4 +23,8 @@ public final class MountedPlayerInputHelper {
         }
         return input.left() ? 1.0f : -1.0f;
     }
+
+    public static boolean isJumping(ServerPlayerEntity player) {
+        return player.getPlayerInput().jump();
+    }
 }

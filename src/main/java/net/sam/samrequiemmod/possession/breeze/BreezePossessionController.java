@@ -79,8 +79,8 @@ public final class BreezePossessionController {
                 return false;
             }
 
-            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.ENTITY_BREEZE_HURT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            net.sam.samrequiemmod.possession.PossessionHurtSoundHelper.playIfReady(
+                    player, SoundEvents.ENTITY_BREEZE_HURT, 1.0f);
 
             if (source.getAttacker() instanceof MobEntity mob && !isBreezeAlly(mob)) {
                 ZombieTargetingState.markProvoked(mob.getUuid(), player.getUuid());
